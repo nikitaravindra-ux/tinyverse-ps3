@@ -2,7 +2,7 @@
 
 **Find, review and irreversibly redact personal data in Indian business documents, then summarise them safely, entirely on your laptop.**
 
-Tinyverse Hackathon Final Round — PS-3: Privacy-Aware Document Redaction and Summary Tool
+Tinyverse Solo Hackathon Final Round — PS-3: Privacy-Aware Document Redaction and Summary Tool
 
 Nikita Ravindra · USN 1MS24CI079 · CSE (AI & ML) · MSRIT
 
