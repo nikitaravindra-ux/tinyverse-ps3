@@ -246,6 +246,11 @@ _NAME_STOPWORDS = {
     "Note", "Section", "Annexure", "Schedule", "Clause", "Part", "Table", "Figure", "Box",
     "Ltd", "Pvt", "Inc", "Co", "Road", "Nagar", "Street", "Block", "Main", "Cross",
     "Date", "Place", "Signature", "Name", "Dear", "Regards", "Sincerely", "Director", "Manager",
+    # sentence openers that precede an initial ("Later R. Sharma replied")
+    "Later", "Also", "Then", "However", "Further", "Furthermore", "Kindly", "Please", "Thus",
+    "Hence", "Here", "There", "When", "While", "After", "Before", "Since", "Only", "Both",
+    "Contact", "Meanwhile", "Additionally", "Finally", "Today", "Yesterday", "Signed", "Sent",
+    "Copy", "Cc", "From", "Attention", "Verified", "Approved", "Reviewed", "Prepared",
 }
 
 

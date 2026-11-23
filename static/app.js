@@ -31,6 +31,9 @@
     focus: -1,          // index into visible spans
     filter: "ALL",
     selection: null,    // {start, end, text}
+    mode: "pseudonym",  // export replacement style
+    allowPending: false,
+    lastExport: null,   // {receipt, file}
   };
 
   const key = (sp) => `${sp.start}:${sp.end}`;
@@ -121,7 +124,7 @@
     state.doc = doc;
     state.status = new Map();
     for (const sp of doc.spans) state.status.set(key(sp), old.get(key(sp)) || (sp.source === "manual" ? "approved" : "pending"));
-    if (!keepStatus) { state.filter = "ALL"; state.focus = -1; }
+    if (!keepStatus) { state.filter = "ALL"; state.focus = -1; state.allowPending = false; }
     $("#doc-file").textContent = doc.filename;
     $("#doc-title").textContent = prettyName(doc.filename);
     show("review");
@@ -246,6 +249,122 @@
     const lbl = $("#progress-label");
     lbl.replaceChildren(el("b", { text: String(a) }), " approved · ", el("b", { text: String(r) }), " rejected · ",
       el("b", { text: String(p) }), " pending");
+    renderExport(p);
+  }
+
+  // ---------------------------------------------------------------- export
+  function pendingCount() {
+    return state.doc ? state.doc.spans.filter((sp) => statusOf(sp) === "pending").length : 0;
+  }
+
+  function renderExport(pending = pendingCount()) {
+    const ok = pending === 0 || state.allowPending;
+    $("#export-txt").disabled = !ok;
+    $("#export-pdf").disabled = !ok;
+    for (const b of document.querySelectorAll(".mode-btn")) b.setAttribute("aria-pressed", String(b.dataset.mode === state.mode));
+    const note = $("#export-note");
+    if (pending === 0) {
+      note.textContent = "Everything reviewed. Approved spans and all their linked variants will be removed.";
+    } else if (state.allowPending) {
+      note.textContent = `Redact anyway is on: ${pending} pending span${pending > 1 ? "s" : ""} will stay in the file.`;
+    } else {
+      note.replaceChildren(`${pending} span${pending > 1 ? "s" : ""} still pending.`,
+        el("button", { class: "pill btn small", type: "button", onclick: askRedactAnyway }, "Redact anyway…"));
+    }
+  }
+
+  function askRedactAnyway() {
+    const n = pendingCount();
+    $("#confirm-body").textContent =
+      `${n} span${n > 1 ? "s are" : " is"} still pending. Pending spans are NOT redacted: they stay readable in the exported file. ` +
+      "Only approved spans and their linked variants are removed.";
+    $("#confirm").hidden = false;
+    $("#confirm-yes").focus();
+  }
+
+  async function exportDoc(fmt) {
+    if (pendingCount() && !state.allowPending) { askRedactAnyway(); return; }
+    const spans = state.doc.spans.map((sp) => ({ ...sp, status: statusOf(sp) }));
+    toast(`Building ${fmt.toUpperCase()} and verifying…`);
+    try {
+      const res = await fetch("/api/export", {
+        method: "POST", headers: { "Content-Type": "application/json" },
+        body: JSON.stringify({ text: state.doc.text, spans, entities: state.doc.entities,
+          mode: state.mode, format: fmt, allow_pending: state.allowPending }),
+      });
+      const body = await res.json();
+      if (!res.ok) throw new Error(body.detail || `Export failed (${res.status}).`);
+      state.lastExport = body;
+      renderReceipt(body.receipt);
+    } catch (err) {
+      toast(err.message);
+    }
+  }
+
+  function download(name, blob) {
+    const url = URL.createObjectURL(blob);
+    const a = el("a", { href: url, download: name });
+    document.body.append(a);
+    a.click();
+    a.remove();
+    setTimeout(() => URL.revokeObjectURL(url), 1000);
+  }
+
+  function downloadFile() {
+    const f = state.lastExport.file;
+    const bytes = Uint8Array.from(atob(f.base64), (c) => c.charCodeAt(0));
+    download(f.name, new Blob([bytes], { type: f.mime }));
+  }
+
+  function downloadReceipt() {
+    const r = state.lastExport.receipt;
+    download(r.file.name.replace(/\.[^.]+$/, "") + ".receipt.json",
+      new Blob([JSON.stringify(r, null, 2)], { type: "application/json" }));
+  }
+
+  function renderReceipt(r) {
+    const v = r.verification;
+    const row = (k, ...val) => [el("dt", { text: k }), el("dd", {}, ...val)];
+    const types = Object.entries(r.removed.by_type).map(([t, n]) =>
+      el("span", { class: "pill pill-label" }, `${TYPE_TAG[t] || t} `, el("b", { text: String(n) })));
+    const ts = new Date(r.created_at);
+    const rows = [
+      ...row("File", r.file.name, ` · ${(r.file.bytes / 1024).toFixed(1)} KB`),
+      ...row("Style", `${r.format.toUpperCase()} · ${r.mode === "mask" ? "mask [NAME]" : "pseudonym [PERSON_1]"}`),
+      ...row("Removed", `${r.removed.total} item${r.removed.total === 1 ? "" : "s"} across ${r.removed.entities} entit${r.removed.entities === 1 ? "y" : "ies"}`),
+      ...row("By type", el("div", { class: "types" }, ...types)),
+      ...row("Checks", `${v.checks} performed · ${v.recoverable} recoverable` + (v.skipped.length ? ` · ${v.skipped.length} skipped` : "")),
+    ];
+    if (r.pdf_metadata) rows.push(...row("Metadata", r.pdf_metadata.info_entries === 0 && !r.pdf_metadata.xmp ? "None: no author, title or producer; no XMP" : `${r.pdf_metadata.info_entries} entries · XMP ${r.pdf_metadata.xmp ? "present" : "absent"}`));
+    if (r.review.pending_left_unredacted || r.review.overridden_rejections) {
+      const notes = [];
+      if (r.review.pending_left_unredacted) notes.push(`${r.review.pending_left_unredacted} pending left unredacted`);
+      if (r.review.overridden_rejections) notes.push(`${r.review.overridden_rejections} rejected mention${r.review.overridden_rejections > 1 ? "s" : ""} redacted because the same entity was approved`);
+      rows.push(...row("Review", notes.join(" · ")));
+    }
+    rows.push(...row("SHA-256", el("span", { class: "hash", text: r.file.sha256 })));
+    rows.push(...row("Issued", `${ts.toLocaleString()} (${r.created_at})`));
+
+    const card = $("#receipt-card");
+    card.replaceChildren(
+      el("p", { class: "eyebrow", id: "receipt-title", text: "Redaction receipt" }),
+      el("h3", { class: "display mid", text: `${v.recoverable} recoverable` }),
+      el("p", { class: "verdict" }, el("span", {
+        class: `pill pill-label ${v.passed ? "strong" : "dashed"}`,
+        text: v.passed ? "Verified: nothing removed can be found in the exported file" : "Check failed: some removed values are still present",
+      })),
+      ...(v.failures.length ? [el("ul", { class: "fail-list" }, ...v.failures.map((f) =>
+        el("li", { text: `${f.kind.replace("_", " ")} · ${TYPE_TAG[f.type] || f.type} · ${f.hint}` })))] : []),
+      el("hr", { class: "tear" }),
+      el("dl", {}, ...rows),
+      el("hr", { class: "tear" }),
+      el("div", { class: "chips actions no-print" },
+        el("button", { class: "pill btn solid", type: "button", onclick: downloadFile }, `Download ${r.format.toUpperCase()}`),
+        el("button", { class: "pill btn", type: "button", onclick: downloadReceipt }, "Receipt JSON"),
+        el("button", { class: "pill btn", type: "button", onclick: () => window.print() }, "Print"),
+        el("button", { class: "pill btn", type: "button", onclick: () => { $("#receipt").hidden = true; } }, "Close")),
+    );
+    $("#receipt").hidden = false;
   }
 
   // ---------------------------------------------------------------- focus & actions
@@ -401,7 +520,11 @@
     if (e.metaKey || e.ctrlKey || e.altKey) return;
     const tag = (e.target.tagName || "").toLowerCase();
     if (tag === "textarea" || tag === "input") return;
-    if (e.key === "Escape") { toggleHelp(false); $("#type-pop").hidden = true; return; }
+    if (e.key === "Escape") {
+      toggleHelp(false); $("#type-pop").hidden = true; $("#confirm").hidden = true; $("#receipt").hidden = true;
+      return;
+    }
+    if (!$("#receipt").hidden || !$("#confirm").hidden) return;
     if (e.key === "?") { e.preventDefault(); toggleHelp(); return; }
     if (!$("#help").hidden) return;
     const pop = $("#type-pop");
@@ -415,6 +538,7 @@
       k: () => setFocus(state.focus - 1),
       s: redactSimilar,
       m: openTypePop,
+      e: () => exportDoc("pdf"),
     };
     if (actions[k]) { e.preventDefault(); actions[k](); }
   }
@@ -446,6 +570,19 @@
       if (!e.target.closest("#type-pop, #sel-btn, #doc")) { $("#type-pop").hidden = true; $("#sel-btn").hidden = true; }
     });
     document.addEventListener("keydown", onKey);
+
+    for (const b of document.querySelectorAll(".mode-btn")) {
+      b.addEventListener("click", () => { state.mode = b.dataset.mode; renderExport(); });
+    }
+    $("#export-txt").addEventListener("click", () => exportDoc("txt"));
+    $("#export-pdf").addEventListener("click", () => exportDoc("pdf"));
+    $("#confirm-no").addEventListener("click", () => { $("#confirm").hidden = true; });
+    $("#confirm-yes").addEventListener("click", () => {
+      state.allowPending = true;
+      $("#confirm").hidden = true;
+      renderExport();
+    });
+    $("#receipt").addEventListener("click", (e) => { if (e.target.id === "receipt") $("#receipt").hidden = true; });
   }
 
   wire();

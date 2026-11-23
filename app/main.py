@@ -1,6 +1,7 @@
 """FastAPI entry point for the privacy-aware redaction tool (runs fully locally)."""
 from __future__ import annotations
 
+import base64
 import io
 from pathlib import Path
 from typing import Optional
@@ -14,6 +15,7 @@ from pydantic import BaseModel
 from app import detect as detector
 from app.config import OLLAMA_URL, SUMMARY_MODEL
 from app.link import link
+from app import redact
 
 ROOT = Path(__file__).resolve().parent.parent
 STATIC = ROOT / "static"
@@ -28,6 +30,15 @@ app = FastAPI(title="Tinyverse PS-3: Privacy-Aware Redaction & Summary")
 class DetectRequest(BaseModel):
     text: str
     use_ner: bool = True
+
+
+class ExportRequest(BaseModel):
+    text: str
+    spans: list[dict]          # each carries status: approved | rejected | pending
+    entities: list[dict]
+    mode: str = "pseudonym"    # pseudonym -> [PERSON_1]; mask -> [NAME]
+    format: str = "pdf"        # pdf | txt
+    allow_pending: bool = False
 
 
 class LinkRequest(BaseModel):
@@ -126,6 +137,26 @@ def relink(req: LinkRequest) -> dict:
     """Re-cluster after manual edits in the review UI."""
     spans, entities = link(req.text, req.spans)
     return {"spans": spans, "entities": entities}
+
+
+@app.post("/api/export")
+def export(req: ExportRequest) -> dict:
+    """Redact approved spans (+ all linked variants), write TXT or a rebuilt PDF,
+    re-open it and verify nothing removed is recoverable."""
+    if req.mode not in redact.MODES:
+        raise HTTPException(422, f"mode must be one of {list(redact.MODES)}")
+    if req.format not in redact.FORMATS:
+        raise HTTPException(422, f"format must be one of {list(redact.FORMATS)}")
+    pending = sum(1 for s in req.spans if s.get("status", "pending") == "pending")
+    if pending and not req.allow_pending:
+        raise HTTPException(409, f"{pending} span(s) are still pending review. "
+                                 "Review them or confirm 'redact anyway'.")
+    result = redact.export(req.text, req.spans, req.entities, req.mode, req.format)
+    return {
+        "receipt": result["receipt"],
+        "file": {"name": result["receipt"]["file"]["name"], "mime": result["mime"],
+                 "base64": base64.b64encode(result["data"]).decode("ascii")},
+    }
 
 
 @app.get("/api/samples")

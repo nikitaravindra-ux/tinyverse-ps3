@@ -71,6 +71,17 @@
           <span class="seg rejected" id="prog-rejected"></span>
         </div>
         <p class="progress-label" id="progress-label"></p>
+        <div class="export" id="export" aria-label="Export">
+          <div class="chips" role="group" aria-label="Replacement style">
+            <button class="pill btn chip mode-btn" type="button" data-mode="pseudonym" aria-pressed="true">Pseudonym <span class="hint">[PERSON_1]</span></button>
+            <button class="pill btn chip mode-btn" type="button" data-mode="mask" aria-pressed="false">Mask <span class="hint">[NAME]</span></button>
+          </div>
+          <div class="chips">
+            <button class="pill btn solid" type="button" id="export-txt">Export TXT</button>
+            <button class="pill btn solid" type="button" id="export-pdf">Export PDF</button>
+          </div>
+          <p class="export-note" id="export-note"></p>
+        </div>
       </div>
     </section>
 
@@ -108,11 +119,29 @@
         <dt><kbd>J</kbd> / <kbd>K</kbd></dt><dd>Next / previous span</dd>
         <dt><kbd>S</kbd></dt><dd>Redact all similar: the same person, or the same type and shape</dd>
         <dt><kbd>M</kbd></dt><dd>Add a manual redaction from the selected text</dd>
+        <dt><kbd>E</kbd></dt><dd>Export PDF (when nothing is pending)</dd>
         <dt><kbd>?</kbd></dt><dd>Show or hide this sheet</dd>
         <dt><kbd>Esc</kbd></dt><dd>Close dialogs</dd>
       </dl>
       <button class="pill btn" id="help-close" type="button">Close</button>
     </div>
+  </div>
+
+  <!-- Redact-anyway confirmation -->
+  <div class="overlay" id="confirm" hidden>
+    <div class="sheet" role="alertdialog" aria-modal="true" aria-labelledby="confirm-title">
+      <h3 class="display small" id="confirm-title">Redact anyway?</h3>
+      <p id="confirm-body"></p>
+      <div class="chips">
+        <button class="pill btn" type="button" id="confirm-no">Go back and review</button>
+        <button class="pill btn solid" type="button" id="confirm-yes">Redact anyway</button>
+      </div>
+    </div>
+  </div>
+
+  <!-- Redaction receipt -->
+  <div class="overlay" id="receipt" hidden>
+    <article class="sheet receipt" role="dialog" aria-modal="true" aria-labelledby="receipt-title" id="receipt-card"></article>
   </div>
 
   <div class="toast" id="toast" role="status" aria-live="polite" hidden></div>

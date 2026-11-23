@@ -99,7 +99,47 @@ Other types are grouped by normalised value, so the same PAN twice, or
 | `POST /api/analyze` | multipart `file` (.txt / text PDF) or form `text` → `{text, spans, entities}`. Scanned/image-only PDFs get a 422 with a clear message |
 | `POST /api/link` | `{text, spans}` → re-clustered `{spans, entities}` (used after manual additions) |
 | `GET /api/samples`, `/api/samples/{name}` | list / analyse bundled samples |
+| `POST /api/export` | redacted TXT/PDF (base64) + Redaction Receipt |
 | `GET /api/status` | detector mode (hybrid vs rules-only) and Ollama / summary-model availability |
+
+## Redaction & export (`app/redact.py`)
+
+`POST /api/export` takes `{text, spans (with status), entities, mode, format, allow_pending}`.
+
+**Modes**
+
+| `mode` | Replacement |
+|---|---|
+| `pseudonym` | `[PERSON_1]`, `[EMAIL_1]`, … |
+| `mask` | `[NAME]`, `[EMAIL]`, … |
+
+**What gets removed**
+- Every approved span.
+- For each entity with an approved mention, every occurrence of every one of its variants. The text is rescanned case-insensitively, so an undetected "RICHA SHARMA" in a header still goes.
+- Rejected mentions of an approved entity are redacted too, and the receipt counts them as overridden.
+- Pending spans are only left in when `allow_pending` is set ("redact anyway"). Otherwise the API returns 409.
+
+**Output formats**
+- **TXT:** UTF-8 text.
+- **PDF:** rebuilt from scratch from the redacted text with reportlab, using embedded DejaVu Sans so ₹ survives.
+- Nothing is ever drawn over the original PDF.
+- The `/Info` dictionary is removed and no XMP stream is written: no author, title, producer or dates.
+
+**Integrity verifier**: the exported file is reopened (with pypdf for PDF) and searched case-insensitively for:
+- every removed string
+- every name variant
+- every 4+ digit run from removed phones/IDs, and the joined digit string
+- every email username
+
+Role mailboxes such as `hr@` are listed as skipped rather than checked, because "hr" also appears in ordinary text.
+
+**Redaction Receipt**: the result is returned as a receipt containing:
+- counts per type and entity count
+- `recoverable` (0, or masked failure hints; the receipt never echoes PII)
+- the SHA-256 of the exported file
+- PDF metadata status and a UTC timestamp
+
+In the UI it is a printable card, with downloads for the file and the receipt JSON.
 
 ## Review UI (`static/`)
 
@@ -126,6 +166,8 @@ entity.
 | `M` | add a manual redaction from selected text |
 | `?` | shortcut sheet |
 
+**Export panel:** pseudonym/mask toggle and TXT/PDF buttons. The buttons are enabled once nothing is pending, or after a "redact anyway" confirmation. `E` exports PDF.
+
 **Deep link:** `/#sample=hr_offer_letter.txt` opens a sample directly.
 
 **Fonts are bundled locally**, so the UI works offline:
@@ -149,7 +191,8 @@ generated to pass their checksums.
 ## Layout
 
 ```
-app/        main.py (API), config.py, detect.py, link.py; redact/summarize/audit/learn upcoming
+app/        main.py (API), config.py, detect.py, link.py, redact.py; summarize/audit/learn upcoming
+app/fonts/  DejaVu Sans for rebuilt PDFs (licence included)
 static/     index.html, styles.css, app.js, fonts/
 eval/       evaluation scripts (cache in eval/cache/, git-ignored)
 samples/    synthetic test documents
