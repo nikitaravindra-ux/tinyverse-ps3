@@ -10,7 +10,7 @@ own machine.** No cloud APIs are used, and no document leaves the laptop.
 | Frontend | Plain HTML/CSS/vanilla JS served by FastAPI (no build step) |
 | PDF in / out | `pypdf` (text PDFs) / `reportlab` |
 | NER | [GLiNER](https://github.com/urchade/GLiNER) `urchade/gliner_multi_pii-v1` |
-| Summaries | Ollama on `localhost:11434` |
+| Summaries | Ollama on `localhost:11434`, model `llama3.2:3b` (set once in `app/config.py` → `SUMMARY_MODEL`) |
 
 ## Quick start
 
@@ -54,6 +54,11 @@ only, and `GET /api/status` reports it:
 lazily. Text is chunked into 300-word windows with a 60-word overlap, and offsets are
 mapped back to the full document.
 
+**Organisation addresses**: letterhead, registered-office and company addresses are
+not personal data. They are still detected, but tagged `ORG_ADDRESS` with confidence
+0.5, so they show up as low-confidence review candidates instead of being treated
+like home addresses.
+
 **Confidence**
 
 | Source | Confidence |
@@ -73,6 +78,63 @@ and a weaker NAME/ADDRESS span is trimmed around a stronger span of another type
 - ISBNs and version numbers
 - any bare 12-digit number that fails Verhoeff
 
+## Entity linking (`app/link.py`)
+
+NAME spans are clustered into people, and each person gets a pseudonym
+(`PERSON_1`, `PERSON_2`, …):
+
+- **Initial and surname:** "R. Sharma" joins "Richa Sharma" when the surname matches and the first initial fits.
+- **Honorific and surname:** "Ms. Sharma" links only when Sharma is unique in the document and the honorific's gender doesn't conflict.
+- **First name only:** "Richa" links only when exactly one person has that first name.
+- **Normalisation:** case and punctuation are normalised before any comparison.
+- **Exact-occurrence scan:** after clustering, the whole document is searched for every exact occurrence of every linked variant, plus each unambiguous bare first name and surname. Repeats the detector missed are added with `source: "link"`.
+
+Other types are grouped by normalised value, so the same PAN twice, or
+`riya@gmail.com` and `riya [at] gmail [dot] com`, become one entity.
+
+## API
+
+| Endpoint | Purpose |
+|---|---|
+| `POST /api/analyze` | multipart `file` (.txt / text PDF) or form `text` → `{text, spans, entities}`. Scanned/image-only PDFs get a 422 with a clear message |
+| `POST /api/link` | `{text, spans}` → re-clustered `{spans, entities}` (used after manual additions) |
+| `GET /api/samples`, `/api/samples/{name}` | list / analyse bundled samples |
+| `GET /api/status` | detector mode (hybrid vs rules-only) and Ollama / summary-model availability |
+
+## Review UI (`static/`)
+
+The UI is a single page with no build step. The document is on the left, with each
+highlighted span labelled by a type tag. The candidates are on the right, grouped by
+entity.
+
+**Confidence tones**
+
+| Confidence | Style |
+|---|---|
+| ≥ 0.90 | solid purple fill |
+| 0.60–0.89 | purple outline |
+| < 0.60 | dashed outline |
+
+**Keyboard**
+
+| Key | Action |
+|---|---|
+| `A` | approve |
+| `R` | reject |
+| `J` / `K` | next / previous span |
+| `S` | redact all similar (the same person, or the same type and shape) |
+| `M` | add a manual redaction from selected text |
+| `?` | shortcut sheet |
+
+**Deep link:** `/#sample=hr_offer_letter.txt` opens a sample directly.
+
+**Fonts are bundled locally**, so the UI works offline:
+
+| Role | Font |
+|---|---|
+| Headings | *The Seasons* from `static/fonts/TheSeasons.otf` (drop the file in; not committed), falling back to Gloock, then serif |
+| Body | Montserrat (OFL, licence in `static/fonts/`) |
+
 ## Samples (`samples/`)
 
 All data is synthetic. Every Aadhaar/PAN/card number is made up, though some are
@@ -87,8 +149,8 @@ generated to pass their checksums.
 ## Layout
 
 ```
-app/        main.py (API), detect.py, plus link/redact/summarize/audit/learn (upcoming)
-static/     frontend
+app/        main.py (API), config.py, detect.py, link.py; redact/summarize/audit/learn upcoming
+static/     index.html, styles.css, app.js, fonts/
 eval/       evaluation scripts (cache in eval/cache/, git-ignored)
 samples/    synthetic test documents
 tests/      pytest suite

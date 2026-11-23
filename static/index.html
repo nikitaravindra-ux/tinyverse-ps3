@@ -1,0 +1,122 @@
+<!doctype html>
+<html lang="en">
+<head>
+  <meta charset="utf-8">
+  <meta name="viewport" content="width=device-width, initial-scale=1">
+  <title>Redaction Review</title>
+  <link rel="stylesheet" href="/static/styles.css">
+</head>
+<body>
+  <header class="topbar">
+    <div class="topbar-left">
+      <span class="pill pill-label strong">PS—3</span>
+      <span class="pill pill-label">Runs on this machine</span>
+      <span class="pill pill-label" id="detector-pill">Detector · checking</span>
+      <span class="pill pill-label" id="model-pill">Summary · checking</span>
+    </div>
+    <div class="topbar-right">
+      <button class="pill btn" id="open-btn" type="button">Open document</button>
+      <button class="pill btn" id="help-btn" type="button" aria-label="Keyboard shortcuts">Shortcuts <kbd>?</kbd></button>
+    </div>
+  </header>
+
+  <input type="file" id="file-input" accept=".txt,.md,.pdf,text/plain,application/pdf" hidden>
+
+  <!-- Landing -->
+  <main id="landing" class="landing">
+    <p class="eyebrow">Privacy-aware redaction &amp; summary</p>
+    <h1 class="display">Find the people<br>in the paperwork.</h1>
+    <p class="lede">
+      Upload an HR letter, a KYC form or a contract. Names, phone numbers, IDs and
+      addresses are found on this laptop, linked across their variants, and queued
+      for you to approve before anything is redacted.
+    </p>
+
+    <section class="drop" id="dropzone" tabindex="0" aria-label="Drop a document here">
+      <p class="drop-title">Drop a .txt or text-based PDF</p>
+      <p class="drop-sub">Scanned PDFs without a text layer are not supported.</p>
+      <button class="pill btn solid" id="choose-btn" type="button">Choose file</button>
+    </section>
+
+    <div class="notice" id="landing-error" role="alert" hidden></div>
+
+    <section class="samples">
+      <p class="eyebrow">Or open a synthetic sample</p>
+      <div class="chips" id="sample-list"></div>
+    </section>
+
+    <details class="paste">
+      <summary class="pill btn">Paste text instead</summary>
+      <textarea id="paste-text" rows="8" placeholder="Paste document text here…"></textarea>
+      <button class="pill btn solid" id="paste-btn" type="button">Analyse text</button>
+    </details>
+  </main>
+
+  <!-- Loading -->
+  <main id="loading" class="loading" hidden>
+    <p class="display small" id="loading-text">Reading the document…</p>
+    <p class="lede">The first run loads the NER model and can take a few seconds.</p>
+  </main>
+
+  <!-- Review -->
+  <main id="review" class="review" hidden>
+    <section class="review-head">
+      <div class="title-block">
+        <span class="pill pill-label" id="doc-file"></span>
+        <h2 class="display mid" id="doc-title"></h2>
+      </div>
+      <div class="progress-block">
+        <div class="progress" role="progressbar" aria-valuemin="0" aria-valuemax="100" id="progress">
+          <span class="seg approved" id="prog-approved"></span>
+          <span class="seg rejected" id="prog-rejected"></span>
+        </div>
+        <p class="progress-label" id="progress-label"></p>
+      </div>
+    </section>
+
+    <nav class="chips type-filter" id="type-filter" aria-label="Filter by type"></nav>
+
+    <div class="legend">
+      <span class="legend-item"><span class="m hi sample">0.90+</span> high</span>
+      <span class="legend-item"><span class="m md sample">0.60–0.89</span> medium</span>
+      <span class="legend-item"><span class="m lo sample">&lt; 0.60</span> low</span>
+      <span class="legend-hint">Select text and press <kbd>M</kbd> to add a redaction.</span>
+    </div>
+
+    <div class="review-grid">
+      <article class="doc" id="doc" aria-label="Document"></article>
+      <aside class="candidates" id="candidates" aria-label="Candidates grouped by entity"></aside>
+    </div>
+  </main>
+
+  <!-- Floating action for a text selection -->
+  <button class="pill btn solid floating" id="sel-btn" type="button" hidden>Redact selection <kbd>M</kbd></button>
+
+  <!-- Type chooser for manual redaction -->
+  <div class="popover" id="type-pop" hidden role="dialog" aria-label="Choose a type">
+    <p class="eyebrow">Mark selection as</p>
+    <div class="chips" id="type-pop-chips"></div>
+  </div>
+
+  <!-- Shortcut cheat-sheet -->
+  <div class="overlay" id="help" hidden>
+    <div class="sheet" role="dialog" aria-modal="true" aria-labelledby="help-title">
+      <h3 class="display small" id="help-title">Shortcuts</h3>
+      <dl class="keys">
+        <dt><kbd>A</kbd></dt><dd>Approve the focused span (it will be redacted)</dd>
+        <dt><kbd>R</kbd></dt><dd>Reject the focused span (keep the text)</dd>
+        <dt><kbd>J</kbd> / <kbd>K</kbd></dt><dd>Next / previous span</dd>
+        <dt><kbd>S</kbd></dt><dd>Redact all similar: the same person, or the same type and shape</dd>
+        <dt><kbd>M</kbd></dt><dd>Add a manual redaction from the selected text</dd>
+        <dt><kbd>?</kbd></dt><dd>Show or hide this sheet</dd>
+        <dt><kbd>Esc</kbd></dt><dd>Close dialogs</dd>
+      </dl>
+      <button class="pill btn" id="help-close" type="button">Close</button>
+    </div>
+  </div>
+
+  <div class="toast" id="toast" role="status" aria-live="polite" hidden></div>
+
+  <script src="/static/app.js"></script>
+</body>
+</html>
