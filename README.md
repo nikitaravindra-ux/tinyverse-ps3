@@ -17,12 +17,14 @@ own machine.** No cloud APIs are used, and no document leaves the laptop.
 ```bash
 python3.11 -m venv .venv
 .venv/bin/pip install -r requirements.txt
+.venv/bin/python -m app.fetch_model          # one-time GLiNER download (the only online step)
 .venv/bin/uvicorn app.main:app --reload      # http://127.0.0.1:8000
 .venv/bin/python -m pytest                   # tests (rules only, no model needed)
 ```
 
-The GLiNER weights (~1 GB) download from Hugging Face on first use and are cached
-locally after that. If the model can't be loaded, the detector falls back to rules
+The GLiNER weights (~1 GB) are downloaded once with `app.fetch_model`. The app
+itself runs with Hugging Face in offline mode, so it loads the cached weights and
+never contacts the Hub. If the model can't be loaded, the detector falls back to rules
 only, and `GET /api/status` reports it:
 
 ```json
@@ -102,6 +104,8 @@ Other types are grouped by normalised value, so the same PAN twice, or
 | `POST /api/summarize` | audited summary of the redacted text + QI report |
 | `POST /api/qi` | quasi-identifier report for any text |
 | `POST /api/export` | redacted TXT/PDF (base64) + Redaction Receipt |
+| `POST /api/feedback` | record approve/reject/manual events and re-analyse the open document |
+| `GET /api/learn`, `POST /api/learn/undo`, `POST /api/learn/reset` | learned rules, undo one, forget all |
 | `GET /api/status` | detector mode (hybrid vs rules-only) and Ollama / summary-model availability |
 
 ## Redaction & export (`app/redact.py`)
@@ -176,6 +180,32 @@ so the removed values never come from the client. It then:
 | Medical claim PDF | 4.4 |
 | **Average** | **6.3** |
 
+## Learning from feedback (`app/learn.py`)
+
+Feedback is stored in `data/learned.json`, which is local only and git-ignored.
+
+| Feedback | What is learned |
+|---|---|
+| Reject | The exact string goes on the **allowlist** and is never flagged again. After **2 rejections of the same shape** (e.g. `AAA-99999`), that shape becomes a non-PII pattern for the type. |
+| Approve / manual add | The exact string goes on the **denylist** and is always flagged in future documents. After **2 manual adds of a new shape**, the shape becomes a candidate regex rule for that type. |
+| Every event | Each type's GLiNER threshold is recalibrated from its approve/reject ratio. It starts at 0.45 and stays within **0.25–0.70**. One approval nudges it down by about 0.05. |
+
+- **Digit-only shapes:** shapes are only learned when they contain a digit. Names are learned through the allow/deny lists, because a shape like `Aaaaa` would match every capitalised word.
+- **Instant feedback:** each event re-runs detection on the open document straight away. GLiNER's raw predictions are cached per document, so the re-run is instant. For example, rejecting one `EMP-…` code that matches a learned shape clears the others.
+- **"What I learned" drawer (`L`):** lists every rule (allowlist, denylist, shapes, candidate rules, thresholds) with **undo** per rule and **Reset learning**. It shows "N corrections learned", plus a precision before → after placeholder for the eval phase.
+
+## Local-only guarantee (`app/netguard.py`)
+
+- **The guard:** at startup the app patches `socket.socket.connect` / `connect_ex`. Any connection that isn't to loopback (`127.0.0.0/8`, `::1`, `localhost`, Unix sockets) is refused with `OutboundBlockedError` and counted. Ollama on localhost keeps working.
+- **The "Local only" pill:** it reads `/api/status` and shows:
+  - whether GLiNER is loaded
+  - Ollama status
+  - outbound network calls (0)
+  - blocked attempts
+  - local connections
+
+  All of these are real counters from the guard; nothing is hardcoded.
+
 ## Review UI (`static/`)
 
 The UI is a single page with no build step. The document is on the left, with each
@@ -226,7 +256,8 @@ generated to pass their checksums.
 ## Layout
 
 ```
-app/        main.py (API), config.py, detect.py, link.py, redact.py, summarize.py, audit.py; learn upcoming
+app/        main.py (API), config.py, detect.py, link.py, redact.py, summarize.py, audit.py,
+            learn.py, netguard.py, fetch_model.py
 app/fonts/  DejaVu Sans for rebuilt PDFs (licence included)
 static/     index.html, styles.css, app.js, fonts/
 eval/       evaluation scripts (cache in eval/cache/, git-ignored)

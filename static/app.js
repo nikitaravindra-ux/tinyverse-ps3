@@ -37,6 +37,10 @@
     generalizations: [],// [{find, replace}] applied to the redacted document on export
     summary: null,      // {summary, method, audit, qi, ...}
     summaryKey: null,
+    manual: [],         // manual redactions in this document (kept across re-analysis)
+    feedback: [],       // queued learning events
+    feedbackSeq: 0,
+    learning: null,     // /api/learn summary
   };
 
   const key = (sp) => `${sp.start}:${sp.end}`;
@@ -66,6 +70,7 @@
       const o = st.ollama;
       mp.textContent = `Summary · ${o.summary_model}` + (o.reachable ? (o.model_installed ? "" : " (not pulled)") : " (Ollama offline)");
       mp.classList.toggle("dashed", !o.reachable || !o.model_installed);
+      renderLocal(st);
     } catch (_) {
       $("#detector-pill").textContent = "Detector · unknown";
     }
@@ -129,7 +134,7 @@
     for (const sp of doc.spans) state.status.set(key(sp), old.get(key(sp)) || (sp.source === "manual" ? "approved" : "pending"));
     if (!keepStatus) {
       state.filter = "ALL"; state.focus = -1; state.allowPending = false;
-      state.generalizations = []; state.summary = null; state.summaryKey = null;
+      state.generalizations = []; state.summary = null; state.summaryKey = null; state.manual = [];
       $("#summary-panel").hidden = true;
     }
     $("#doc-file").textContent = doc.filename;
@@ -535,10 +540,175 @@
     document.querySelector(`.mention[data-id="${sp.id}"]`)?.scrollIntoView({ block: "nearest", behavior: "smooth" });
   }
 
-  function setMany(spans, st) {
+  function setMany(spans, st, learnFrom = true) {
     for (const sp of spans) state.status.set(key(sp), st);
     updateMarks();
     renderProgress();
+    if (learnFrom && (st === "approved" || st === "rejected")) {
+      const seen = new Set();
+      const events = [];
+      for (const sp of spans) {
+        if (sp.source === "manual") continue;
+        const k = `${sp.type}|${sp.text}`;
+        if (seen.has(k)) continue;
+        seen.add(k);
+        events.push({ action: st === "approved" ? "approve" : "reject", text: sp.text, type: sp.type });
+      }
+      queueFeedback(events);
+    }
+  }
+
+  // ---------------------------------------------------------------- learning
+  let feedbackTimer;
+  function queueFeedback(events, now = false) {
+    if (!events.length) return;
+    state.feedback.push(...events);
+    clearTimeout(feedbackTimer);
+    feedbackTimer = setTimeout(flushFeedback, now ? 0 : 350);
+  }
+
+  function docPayload() {
+    return { text: state.doc.text, filename: state.doc.filename,
+      manual_spans: state.manual.map(({ start, end, text, type }) => ({ start, end, text, type })) };
+  }
+
+  async function flushFeedback() {
+    if (!state.feedback.length || !state.doc) return;
+    const events = state.feedback.splice(0);
+    const seq = ++state.feedbackSeq;
+    try {
+      const res = await fetch("/api/feedback", {
+        method: "POST", headers: { "Content-Type": "application/json" },
+        body: JSON.stringify({ events, ...docPayload() }),
+      });
+      if (!res.ok) throw new Error();
+      const body = await res.json();
+      setLearning(body.learning);
+      if (seq === state.feedbackSeq && !state.feedback.length) applyAnalysis(body.analysis);
+    } catch (_) {
+      toast("Could not save that feedback.");
+    }
+  }
+
+  function applyAnalysis(a) {
+    if (!a || !state.doc || a.text !== state.doc.text) return;
+    const focusedKey = currentSpan() ? key(currentSpan()) : null;
+    const oldIndex = state.focus;
+    const before = state.doc.spans.length;
+    setDoc({ ...state.doc, spans: a.spans, entities: a.entities }, true);
+    const v = visibleSpans();
+    const i = focusedKey ? v.findIndex((s) => key(s) === focusedKey) : -1;
+    state.focus = -1;
+    setFocus(i >= 0 ? i : Math.min(oldIndex, v.length - 1), false);
+    const diff = a.spans.length - before;
+    if (diff < 0) toast(`Learned: ${-diff} matching span${diff < -1 ? "s" : ""} cleared.`);
+    else if (diff > 0) toast(`Learned: ${diff} more span${diff > 1 ? "s" : ""} flagged.`);
+  }
+
+  function setLearning(l) {
+    state.learning = l;
+    $("#learn-count").textContent = String(l.corrections);
+    $("#learn-n").textContent = String(l.corrections);
+    $("#learn-path").textContent = l.path;
+    const p = l.precision || {};
+    $("#precision-value").textContent = `${p.before ?? "—"} → ${p.after ?? "—"}`;
+    if (!$("#learn-drawer").hidden) renderLearning();
+  }
+
+  async function loadLearning() {
+    try { setLearning(await (await fetch("/api/learn")).json()); } catch (_) { /* optional */ }
+  }
+
+  function renderLearning() {
+    const l = state.learning;
+    if (!l) return;
+    const groups = [
+      ["allowlist", "Allowlist", "Rejected strings, never flagged again."],
+      ["denylist", "Denylist", "Approved or manually added strings, always flagged."],
+      ["shape", "Non-PII shapes", "Learned after 2 rejections of the same shape."],
+      ["candidate", "Candidate rules", "Learned after 2 manual adds of the same shape."],
+    ];
+    const undoBtn = (id) => el("button", { class: "pill btn small", type: "button", onclick: () => undoRule(id) }, "Undo");
+    const sections = groups.map(([kind, title, hint]) => {
+      const rules = l.rules.filter((r) => r.kind === kind);
+      return el("section", { class: "learn-section" },
+        el("h4", { text: `${title} · ${rules.length}` }), el("p", { class: "fine", text: hint }),
+        ...(rules.length ? rules.map((r) => el("div", { class: "rule" },
+          el("span", { class: "what" }, el("span", { class: "pill pill-label", text: TYPE_TAG[r.type] || r.type }),
+            el("b", { text: r.text }), el("span", { class: "detail", text: r.detail })),
+          undoBtn(r.id))) : [el("p", { class: "empty-rules", text: "Nothing yet." })]));
+    });
+    const progress = (l.shape_progress || []).map((p) =>
+      el("p", { class: "fine", text: `${TYPE_TAG[p.type] || p.type} shape ${p.shape}: ${p.seen} of ${p.needed} rejections` }));
+    sections.splice(3, 0, ...progress);
+    sections.push(el("section", { class: "learn-section" },
+      el("h4", { text: "GLiNER thresholds" }),
+      el("p", { class: "fine", text: "Calibrated per type from approvals and rejections, kept within 0.25–0.70." }),
+      ...(l.thresholds.length ? l.thresholds.map((t) => el("div", { class: "rule" },
+        el("span", { class: "what" }, el("span", { class: "pill pill-label", text: TYPE_TAG[t.type] || t.type }),
+          el("b", { text: `${t.base.toFixed(2)} → ${t.value.toFixed(2)}` }),
+          el("span", { class: "detail", text: `${t.approve} approved · ${t.manual} manual · ${t.reject} rejected` })),
+        undoBtn(t.id))) : [el("p", { class: "empty-rules", text: "All types at the default 0.45." })])));
+    $("#learn-sections").replaceChildren(...sections);
+  }
+
+  async function undoRule(id) {
+    const body = { rule_id: id, ...(state.doc ? docPayload() : {}) };
+    try {
+      const res = await fetch("/api/learn/undo", { method: "POST", headers: { "Content-Type": "application/json" }, body: JSON.stringify(body) });
+      if (!res.ok) throw new Error();
+      const j = await res.json();
+      setLearning(j.learning);
+      renderLearning();
+      if (j.analysis) applyAnalysis(j.analysis);
+      toast("Rule undone.");
+    } catch (_) { toast("Could not undo that rule."); }
+  }
+
+  let resetArmed = false;
+  async function resetLearning() {
+    const btn = $("#learn-reset");
+    if (!resetArmed) {
+      resetArmed = true;
+      btn.textContent = "Click again to forget everything";
+      btn.classList.add("solid");
+      setTimeout(() => { resetArmed = false; btn.textContent = "Reset learning"; btn.classList.remove("solid"); }, 4000);
+      return;
+    }
+    resetArmed = false;
+    btn.textContent = "Reset learning";
+    btn.classList.remove("solid");
+    const j = await (await fetch("/api/learn/reset", { method: "POST" })).json();
+    setLearning(j.learning);
+    renderLearning();
+    if (state.doc) {
+      const res = await fetch("/api/feedback", { method: "POST", headers: { "Content-Type": "application/json" },
+        body: JSON.stringify({ events: [], ...docPayload() }) });
+      if (res.ok) applyAnalysis((await res.json()).analysis);
+    }
+    toast("Learning reset.");
+  }
+
+  const toggleDrawer = (force) => {
+    const d = $("#learn-drawer");
+    d.hidden = force === undefined ? !d.hidden : !force;
+    if (!d.hidden) renderLearning();
+  };
+
+  function renderLocal(st) {
+    const n = st.network || {};
+    const pill = $("#local-pill");
+    pill.textContent = `Local only · ${n.outbound_calls ?? "?"} outbound`;
+    pill.classList.toggle("dashed", !n.guard_installed);
+    const d = st.detector, o = st.ollama;
+    const rows = [
+      ["GLiNER", d.status === "loaded" ? "loaded" : d.status === "unavailable" ? "unavailable (rules only)" : "loads on first document"],
+      ["Ollama", o.reachable ? `running · ${o.summary_model}${o.model_installed ? "" : " not pulled"}` : "offline (extractive fallback)"],
+      ["Outbound network calls", String(n.outbound_calls ?? "?")],
+      ["Blocked attempts", String(n.blocked_attempts ?? "?")],
+      ["Local connections", String(n.local_connections ?? "?")],
+    ];
+    $("#local-rows").replaceChildren(...rows.flatMap(([k, v]) => [el("dt", { text: k }), el("dd", { text: v })]));
   }
 
   function decide(st) {
@@ -630,23 +800,25 @@
     const s = state.selection;
     $("#type-pop").hidden = true;
     if (!s) return;
-    const strip = ({ id, entity_id, ...rest }) => rest;
-    const spans = state.doc.spans.map(strip);
-    spans.push({ start: s.start, end: s.end, text: s.text, type, confidence: 1.0, source: "manual" });
-    spans.sort((a, b) => a.start - b.start);
+    state.manual.push({ start: s.start, end: s.end, text: s.text, type });
     state.status.set(`${s.start}:${s.end}`, "approved");
     window.getSelection().removeAllRanges();
     state.selection = null;
+    clearTimeout(feedbackTimer);
+    state.feedback.push({ action: "manual", text: s.text, type });
+    const before = state.doc.spans.length + 1;
+    const seq = ++state.feedbackSeq;
     try {
-      const res = await fetch("/api/link", {
+      const res = await fetch("/api/feedback", {
         method: "POST", headers: { "Content-Type": "application/json" },
-        body: JSON.stringify({ text: state.doc.text, spans }),
+        body: JSON.stringify({ events: state.feedback.splice(0), ...docPayload() }),
       });
       if (!res.ok) throw new Error();
       const body = await res.json();
-      const before = state.doc.spans.length + 1;
-      setDoc({ ...state.doc, spans: body.spans, entities: body.entities }, true);
-      const added = body.spans.length - before;
+      setLearning(body.learning);
+      if (seq !== state.feedbackSeq) return;
+      setDoc({ ...state.doc, spans: body.analysis.spans, entities: body.analysis.entities }, true);
+      const added = body.analysis.spans.length - before;
       const v = visibleSpans();
       setFocus(Math.max(0, v.findIndex((x) => x.start === s.start && x.end === s.end)));
       toast(`Added ${TYPE_TAG[type]} “${s.text}”` + (added > 0 ? ` and ${added} more occurrence${added > 1 ? "s" : ""}.` : "."));
@@ -672,10 +844,12 @@
     const tag = (e.target.tagName || "").toLowerCase();
     if (tag === "textarea" || tag === "input") return;
     if (e.key === "Escape") {
+      toggleDrawer(false); $("#local-pop").hidden = true;
       toggleHelp(false); $("#type-pop").hidden = true; $("#confirm").hidden = true; $("#receipt").hidden = true;
       return;
     }
     if (!$("#receipt").hidden || !$("#confirm").hidden) return;
+    if (e.key.toLowerCase() === "l") { e.preventDefault(); toggleDrawer(); return; }
     if (e.key === "?") { e.preventDefault(); toggleHelp(); return; }
     if (!$("#help").hidden) return;
     const pop = $("#type-pop");
@@ -734,6 +908,18 @@
       renderExport();
     });
     $("#receipt").addEventListener("click", (e) => { if (e.target.id === "receipt") $("#receipt").hidden = true; });
+    $("#learn-btn").addEventListener("click", () => toggleDrawer());
+    $("#learn-close").addEventListener("click", () => toggleDrawer(false));
+    $("#learn-reset").addEventListener("click", resetLearning);
+    $("#local-pill").addEventListener("click", () => {
+      const p = $("#local-pop");
+      p.hidden = !p.hidden;
+      $("#local-pill").setAttribute("aria-expanded", String(!p.hidden));
+      if (!p.hidden) loadStatus();
+    });
+    document.addEventListener("mousedown", (e) => {
+      if (!e.target.closest("#local-pop, #local-pill")) $("#local-pop").hidden = true;
+    });
     $("#sp-close").addEventListener("click", () => { $("#summary-panel").hidden = true; });
     $("#doc-qi-btn").addEventListener("click", checkDocumentQI);
     $("#gen-pdf").addEventListener("click", () => exportDoc("pdf"));
@@ -743,6 +929,8 @@
   wire();
   loadStatus();
   loadSamples();
+  loadLearning();
+  setInterval(loadStatus, 15000);
   // deep link for demos: /#sample=hr_offer_letter.txt
   const m = location.hash.match(/^#sample=(.+)$/);
   if (m) openSample(decodeURIComponent(m[1]));

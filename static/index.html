@@ -10,15 +10,39 @@
   <header class="topbar">
     <div class="topbar-left">
       <span class="pill pill-label strong">PS—3</span>
-      <span class="pill pill-label">Runs on this machine</span>
+      <button class="pill btn pill-label" id="local-pill" type="button" aria-expanded="false" aria-controls="local-pop">Local only · checking</button>
       <span class="pill pill-label" id="detector-pill">Detector · checking</span>
       <span class="pill pill-label" id="model-pill">Summary · checking</span>
     </div>
     <div class="topbar-right">
       <button class="pill btn" id="open-btn" type="button">Open document</button>
+      <button class="pill btn" id="learn-btn" type="button" aria-controls="learn-drawer">What I learned <span class="count" id="learn-count">0</span></button>
       <button class="pill btn" id="help-btn" type="button" aria-label="Keyboard shortcuts">Shortcuts <kbd>?</kbd></button>
     </div>
   </header>
+
+  <!-- Local-only status -->
+  <div class="popover local-pop" id="local-pop" hidden role="dialog" aria-label="Local-only status">
+    <p class="eyebrow">Everything stays on this machine</p>
+    <dl class="kv" id="local-rows"></dl>
+    <p class="fine">Outbound connections are blocked in code: every non-localhost socket connect is refused and counted.</p>
+  </div>
+
+  <!-- What I learned drawer -->
+  <aside class="drawer" id="learn-drawer" hidden aria-label="What I learned">
+    <div class="drawer-head">
+      <h3 class="display small">What I learned</h3>
+      <button class="pill btn small" type="button" id="learn-close">Close</button>
+    </div>
+    <p class="learn-counter"><b id="learn-n">0</b> corrections learned · stored locally in <code id="learn-path">data/learned.json</code></p>
+    <div class="precision">
+      <p class="eyebrow">Precision before → after</p>
+      <p class="precision-value" id="precision-value">— → —</p>
+      <p class="fine">Measured on the eval set once it is wired up.</p>
+    </div>
+    <div id="learn-sections"></div>
+    <button class="pill btn" type="button" id="learn-reset">Reset learning</button>
+  </aside>
 
   <input type="file" id="file-input" accept=".txt,.md,.pdf,text/plain,application/pdf" hidden>
 
@@ -153,6 +177,7 @@
         <dt><kbd>S</kbd></dt><dd>Redact all similar: the same person, or the same type and shape</dd>
         <dt><kbd>M</kbd></dt><dd>Add a manual redaction from the selected text</dd>
         <dt><kbd>E</kbd></dt><dd>Export PDF (when nothing is pending)</dd>
+        <dt><kbd>L</kbd></dt><dd>Open “What I learned”</dd>
         <dt><kbd>?</kbd></dt><dd>Show or hide this sheet</dd>
         <dt><kbd>Esc</kbd></dt><dd>Close dialogs</dd>
       </dl>
