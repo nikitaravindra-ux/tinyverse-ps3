@@ -74,6 +74,15 @@ def test_manual_adds_become_candidate_rule_and_thresholds_calibrate():
     assert learn.thresholds()["PHONE"] >= 0.25
 
 
+def test_only_gliner_evidence_moves_thresholds():
+    base = learn.thresholds()["ID"]
+    client.post("/api/feedback", json={"events": [{"action": "approve", "text": f"A{i}", "type": "ID",
+                                                   "source": "regex+validator"} for i in range(50)]})
+    assert learn.thresholds()["ID"] == base
+    client.post("/api/feedback", json={"events": [{"action": "approve", "text": "Z9", "type": "ID", "source": "gliner"}]})
+    assert learn.thresholds()["ID"] < base
+
+
 def test_names_never_become_shape_rules():
     for n in ("Rohit", "Mohan"):
         client.post("/api/feedback", json={"events": [{"action": "reject", "text": n, "type": "NAME"}]})

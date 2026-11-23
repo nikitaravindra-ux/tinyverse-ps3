@@ -1,0 +1,30 @@
+{
+  "id": "01_offer_variants",
+  "focus": "linking",
+  "text": "Name: Richa Sharma\nDear Ms. Sharma,\nWe are pleased to confirm your offer. R. Sharma will report to Mr. Arjun Menon. Richa, please sign by Friday.\nArjun Menon\nHead of Analytics",
+  "people": [
+    {
+      "name": "Richa Sharma",
+      "mentions": [
+        "Richa Sharma",
+        "Ms. Sharma",
+        "R. Sharma",
+        "Richa"
+      ]
+    },
+    {
+      "name": "Arjun Menon",
+      "mentions": [
+        "Mr. Arjun Menon",
+        "Arjun Menon"
+      ]
+    }
+  ],
+  "must_not_leak": [
+    "Richa",
+    "Sharma",
+    "Arjun",
+    "Menon"
+  ],
+  "qi_traps": []
+}

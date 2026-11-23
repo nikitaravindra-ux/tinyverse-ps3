@@ -147,8 +147,9 @@ def _link_names(name_spans: list[dict]) -> list[_Entity]:
             else:
                 new(sp, p)  # unknown or ambiguous initial: its own entity
         elif kind == "hon_surname":
-            match = [e for e in entities if e.surname == sur]
-            if len(match) == 1 and _gender_ok(match[0], p):
+            # unique among the people this honorific could refer to ("Ms. Rao" ignores "Mr. Rao")
+            match = [e for e in entities if e.surname == sur and _gender_ok(e, p)]
+            if len(match) == 1:
                 match[0].add(sp, p)
             else:
                 new(sp, p)
@@ -214,6 +215,11 @@ def _grow_name(text: str, s: int, e: int, taken: list[tuple[int, int]]) -> tuple
     return s, e
 
 
+from app.detect import _NAME_STOPWORDS as _DETECT_STOPWORDS  # noqa: E402
+
+_SCAN_STOPWORDS |= _DETECT_STOPWORDS
+
+
 def _scan(text: str, entities: list[_Entity], all_spans: list[dict]) -> None:
     taken = [(sp["start"], sp["end"]) for sp in all_spans]
     first_counts: dict[str, int] = {}
@@ -242,10 +248,13 @@ def _scan(text: str, entities: list[_Entity], all_spans: list[dict]) -> None:
                 continue  # this first name is also someone's surname
             if norm_tok == e.surname and first_counts.get(norm_tok):
                 continue
-            surface = next((w for sp in e.spans for w in re.findall(r"[A-Za-z]+", sp["text"])
-                            if _norm(w) == norm_tok and w[0].isupper()), None)
-            if surface and surface not in _SCAN_STOPWORDS:
-                jobs.append((surface, e, round(min(0.85, best), 3), "bare"))
+            surfaces = {w for sp in e.spans for w in re.findall(r"[A-Za-z]+", sp["text"])
+                         if _norm(w) == norm_tok and w[0].isupper()}
+            # "SUNITA PATIL" in a header must still find "Sunita" in prose
+            surfaces |= {w.capitalize() for w in surfaces}
+            for surface in sorted(surfaces):
+                if surface not in _SCAN_STOPWORDS and surface.capitalize() not in _SCAN_STOPWORDS:
+                    jobs.append((surface, e, round(min(0.85, best), 3), "bare"))
 
     # longest variants first so "Ms. Richa Sharma" wins over "Richa"
     jobs.sort(key=lambda j: -len(j[0]))

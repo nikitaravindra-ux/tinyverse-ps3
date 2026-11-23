@@ -786,12 +786,15 @@ def _split_names(spans: list[dict], text: str) -> list[dict]:
 
 
 def detect(text: str, use_ner: bool = True, threshold: float = GLINER_THRESHOLD,
-           type_thresholds: Optional[dict] = None) -> list[dict]:
-    """Detect PII spans in ``text``. Falls back to rules if GLiNER is unavailable."""
+           type_thresholds: Optional[dict] = None, use_rules: bool = True) -> list[dict]:
+    """Detect PII spans in ``text``. Falls back to rules if GLiNER is unavailable.
+
+    ``use_rules=False`` gives a GLiNER-only detector (used by the evaluation): no regex
+    rules and no rule-based false-positive guards, just the model + overlap merge."""
     if not text or not text.strip():
         return []
-    guards = protected_ranges(text)
-    rules = rule_spans(text, guards)
+    guards = protected_ranges(text) if use_rules else []
+    rules = rule_spans(text, guards) if use_rules else []
     gl = gliner_spans(text, threshold, type_thresholds) if use_ner else []
     candidates = _boost(gl, rules) if gl else rules
 
@@ -802,7 +805,7 @@ def detect(text: str, use_ner: bool = True, threshold: float = GLINER_THRESHOLD,
             continue
         if _protected_fraction(sp["start"], sp["end"], guards) >= 0.5:
             continue
-        if sp.get("rule") != "account_number" and _is_failed_aadhaar_like(sp):
+        if use_rules and sp.get("rule") != "account_number" and _is_failed_aadhaar_like(sp):
             continue
         kept.append(sp)
 

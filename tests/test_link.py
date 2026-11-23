@@ -70,6 +70,21 @@ def test_first_name_ambiguous_not_linked():
     assert len([e for e in entities if e["type"] == "NAME"]) == 3
 
 
+def test_honorific_links_when_unique_among_gender_compatible():
+    t = "Complainant: Ms. Kavya Rao. Mr. Rao reviewed it. Ms. Rao was informed."
+    spans = [name_span(t, x) for x in ["Ms. Kavya Rao", "Mr. Rao", "Ms. Rao"]]
+    _, entities = ents(t, spans)
+    kavya = next(e for e in entities if e["canonical"] == "Kavya Rao")
+    assert "Ms. Rao" in kavya["variants"] and "Mr. Rao" not in kavya["variants"]
+
+
+def test_caps_header_name_still_finds_bare_first_name():
+    t = "PREPARED FOR: SUNITA PATIL\nContact Sunita at the office."
+    spans = [name_span(t, "SUNITA PATIL")]
+    spans, _ = ents(t, spans)
+    assert "Sunita" in [s["text"] for s in spans]  # not "Contact Sunita"
+
+
 def test_case_and_punctuation_normalised():
     t = "RICHA SHARMA wrote. R Sharma replied."
     spans = [name_span(t, "RICHA SHARMA"), name_span(t, "R Sharma")]

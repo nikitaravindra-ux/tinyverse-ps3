@@ -1,0 +1,21 @@
+{
+  "id": "10_qi_principal_health",
+  "focus": "qi",
+  "text": "Name: Lakshmi Iyer\nThe principal of the only girls' school in Tumakuru, currently on maternity leave, raised the issue. Ms. Iyer's deputy will respond. The board meets every quarter.",
+  "people": [
+    {
+      "name": "Lakshmi Iyer",
+      "mentions": [
+        "Lakshmi Iyer",
+        "Ms. Iyer"
+      ]
+    }
+  ],
+  "must_not_leak": [
+    "Lakshmi",
+    "Iyer"
+  ],
+  "qi_traps": [
+    "The principal of the only girls' school in Tumakuru, currently on maternity leave"
+  ]
+}

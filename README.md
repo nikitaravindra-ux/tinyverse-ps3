@@ -206,6 +206,42 @@ Feedback is stored in `data/learned.json`, which is local only and git-ignored.
 
   All of these are real counters from the guard; nothing is hardcoded.
 
+## Evaluation (`eval/`)
+
+```bash
+.venv/bin/pip install -r eval/requirements.txt
+.venv/bin/python eval/load_datasets.py     # one-time download (needs internet; no network guard here)
+.venv/bin/python eval/make_indian_set.py   # 200 reproducible Faker en_IN docs (fixed seed)
+.venv/bin/python eval/run_eval.py          # clean detector; add --with-learning to apply data/learned.json
+```
+
+- **Learning is off by default.** The eval always uses a clean detector; `data/learned.json` is applied only with `--with-learning`. The active-learning demo uses its own scratch store in `eval/cache/`.
+- **Sources:** samples of ai4privacy/pii-masking-300k, Gretel synthetic PII finance and NVIDIA Nemotron-PII, all mapped to the five types (see [eval/label_mapping.md](eval/label_mapping.md)), plus the Indian synthetic set and 10 hand-crafted documents (`eval/handmade/`).
+- **Full results:** [eval/results.md](eval/results.md).
+
+Micro F1 (overlap match):
+
+| Dataset | Docs | Regex | GLiNER | Hybrid |
+|---|---:|---:|---:|---:|
+| Indian synthetic (Faker en_IN) | 200 | 0.88 | 0.63 | 0.96 |
+| ai4privacy pii-masking-300k | 500 | 0.45 | 0.56 | 0.59 |
+| Gretel synthetic PII finance | 300 | 0.52 | 0.72 | 0.73 |
+| NVIDIA Nemotron-PII | 300 | 0.49 | 0.70 | 0.71 |
+
+![F1 by dataset](eval/results.png)
+
+**Other results**
+
+| Metric | Result |
+|---|---|
+| Hard-negative false-positive rate | 0.0% (hybrid, 1000 decoys) |
+| Name-linking pairwise accuracy | 100% |
+| Summary leaks on the trap set | 0 |
+| Quasi-identifier traps flagged | 3/3 |
+| Active-learning precision | 99.6% → 99.6% |
+| Active-learning recall | 91.7% → 92.5% |
+| Peak RAM | 1686 MB |
+
 ## Review UI (`static/`)
 
 The UI is a single page with no build step. The document is on the left, with each
@@ -260,7 +296,8 @@ app/        main.py (API), config.py, detect.py, link.py, redact.py, summarize.p
             learn.py, netguard.py, fetch_model.py
 app/fonts/  DejaVu Sans for rebuilt PDFs (licence included)
 static/     index.html, styles.css, app.js, fonts/
-eval/       evaluation scripts (cache in eval/cache/, git-ignored)
+eval/       load_datasets, make_indian_set, run_eval, handmade/, data/, results.*
+            (downloaded datasets in eval/cache/, git-ignored)
 samples/    synthetic test documents
 tests/      pytest suite
 ```

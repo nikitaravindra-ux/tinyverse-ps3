@@ -1,0 +1,25 @@
+{
+  "id": "04_gender_conflict",
+  "focus": "linking",
+  "text": "Complainant: Ms. Kavya Rao\nThe matter was reviewed by Mr. Rao from legal. Ms. Rao was informed on Monday, and Kavya acknowledged the update.",
+  "people": [
+    {
+      "name": "Kavya Rao",
+      "mentions": [
+        "Ms. Kavya Rao",
+        "Ms. Rao",
+        "Kavya"
+      ]
+    },
+    {
+      "name": "Mr. Rao",
+      "mentions": [
+        "Mr. Rao"
+      ]
+    }
+  ],
+  "must_not_leak": [
+    "Kavya"
+  ],
+  "qi_traps": []
+}

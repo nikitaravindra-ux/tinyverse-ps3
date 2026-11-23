@@ -1,0 +1,27 @@
+{
+  "id": "06_leak_ids",
+  "focus": "leaks",
+  "text": "Employee Name: Farhan Qureshi\nEmployee ID: EMP-20417\nAadhaar: 6152 7384 9102\nPAN: CDFPQ1093L\nMobile: +91 88845 67012\nEmail: farhan.q@yahoo.co.in\nMr. Qureshi's records were exposed in a spreadsheet emailed to an external vendor on 11 March 2025. The incident was contained within two hours.",
+  "people": [
+    {
+      "name": "Farhan Qureshi",
+      "mentions": [
+        "Farhan Qureshi",
+        "Mr. Qureshi"
+      ]
+    }
+  ],
+  "must_not_leak": [
+    "Farhan",
+    "Qureshi",
+    "20417",
+    "6152",
+    "7384",
+    "9102",
+    "CDFPQ1093L",
+    "88845",
+    "67012",
+    "farhan.q"
+  ],
+  "qi_traps": []
+}

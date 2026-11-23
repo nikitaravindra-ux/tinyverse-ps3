@@ -78,6 +78,16 @@ def test_auditor_catches_planted_leak(doc, planted, kind):
     assert kind in found, found
 
 
+def test_removed_first_name_is_a_leak_even_if_detection_missed_it():
+    # detection missed the bare "Sunita", so it is still in the redacted document
+    entities = [{"id": "e1", "type": "NAME", "pseudonym": "PERSON_1", "canonical": "Sunita Patil",
+                 "variants": ["Sunita Patil"], "span_ids": ["s1"], "confidence": 0.99}]
+    removed = [{"value": "Sunita Patil", "type": "NAME", "entity_id": "e1"}]
+    source = "Name: [PERSON_1]\nContact Sunita today."
+    res = audit.audit_summary("Sunita runs the firm.", removed, entities, source, use_ner=False)
+    assert [h["kind"] for h in res["hits"]] == ["fuzzy_name"]
+
+
 def test_years_and_amounts_from_document_are_not_leaks(doc):
     # "2025" appears in the redacted doc (date and fee), so it is not a partial-digit leak
     found, _ = kinds("[PERSON_1] joins on 1st April 2025 and paid Rs. 2025.", doc)

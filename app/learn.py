@@ -133,6 +133,13 @@ def _learn_shape(state: dict, bucket: str, target: str, typ: str, text: str, rid
                               "regex": shape_regex(shp), "examples": examples[:5], "created": _now()})
 
 
+def _gliner_evidence(ev: dict) -> bool:
+    """Approving a regex-validated Aadhaar says nothing about GLiNER's threshold: only
+    spans the model contributed to (or events without a source, e.g. API callers) count."""
+    src = ev.get("source")
+    return src is None or "gliner" in src
+
+
 def record(events: list[dict]) -> dict:
     """events: [{action: approve|reject|manual, text, type}]. Returns the new summary."""
     with _lock:
@@ -147,14 +154,16 @@ def record(events: list[dict]) -> dict:
                 if not any(_norm(e["text"]) == _norm(text) for e in state["allowlist"]):
                     state["allowlist"].append({"id": _rid("allow", _norm(text)), "text": text, "type": typ,
                                                "created": _now()})
-                _bump_stats(state, typ, "reject")
+                if _gliner_evidence(ev):
+                    _bump_stats(state, typ, "reject")
                 _learn_shape(state, "reject_shapes", "shapes", typ, text, "shape")
             else:
                 _remove_entry(state["allowlist"], text)
                 _remove_entry(state["denylist"], text)
                 state["denylist"].append({"id": _rid("deny", _norm(text)), "text": text, "type": typ,
                                           "source": action, "created": _now()})
-                _bump_stats(state, typ, action)
+                if action == "manual" or _gliner_evidence(ev):
+                    _bump_stats(state, typ, action)
                 if action == "manual":
                     _learn_shape(state, "manual_shapes", "candidates", typ, text, "cand")
                 # a confirmed value must not be hidden by a learned non-PII shape
@@ -250,6 +259,21 @@ def apply(text: str, spans: list[dict], state: Optional[dict] = None) -> list[di
 # ---------------------------------------------------------------------------
 # Reporting
 # ---------------------------------------------------------------------------
+EVAL_RESULTS = ROOT / "eval" / "results.json"
+
+
+def eval_precision() -> dict:
+    """Active-learning precision before -> after, from the last eval run (eval/results.json)."""
+    try:
+        al = json.loads(EVAL_RESULTS.read_text(encoding="utf-8"))["active_learning"]
+        return {"before": al["precision_before"], "after": al["precision_after"],
+                "recall_before": al["recall_before"], "recall_after": al["recall_after"],
+                "train_docs": al["train_docs"], "test_docs": al["test_docs"],
+                "note": f"simulated reviewer on {al['train_docs']} Indian docs, measured on the next {al['test_docs']}"}
+    except (FileNotFoundError, KeyError, json.JSONDecodeError):
+        return {"before": None, "after": None, "note": "run eval/run_eval.py to measure"}
+
+
 def summary(state: Optional[dict] = None) -> dict:
     state = state or load()
     thr = thresholds(state)
@@ -284,7 +308,7 @@ def summary(state: Optional[dict] = None) -> dict:
         "thresholds": threshold_rows,
         "all_thresholds": thr,
         "shape_progress": list(progress.values()),
-        "precision": {"before": None, "after": None, "note": "wired to the eval set in the next phase"},
+        "precision": eval_precision(),
         "path": str(STORE_PATH.relative_to(ROOT)) if STORE_PATH.is_relative_to(ROOT) else str(STORE_PATH),
         "updated": state.get("updated"),
     }

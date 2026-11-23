@@ -1,0 +1,27 @@
+{
+  "id": "02_two_sharmas",
+  "focus": "linking",
+  "text": "Name: Richa Sharma\nName: Anil Sharma\nRicha Sharma and Anil Sharma attended. R. Sharma presented the budget while A. Sharma took notes.",
+  "people": [
+    {
+      "name": "Richa Sharma",
+      "mentions": [
+        "Richa Sharma",
+        "R. Sharma"
+      ]
+    },
+    {
+      "name": "Anil Sharma",
+      "mentions": [
+        "Anil Sharma",
+        "A. Sharma"
+      ]
+    }
+  ],
+  "must_not_leak": [
+    "Richa",
+    "Anil",
+    "Sharma"
+  ],
+  "qi_traps": []
+}

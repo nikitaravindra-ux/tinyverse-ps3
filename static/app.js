@@ -552,7 +552,7 @@
         const k = `${sp.type}|${sp.text}`;
         if (seen.has(k)) continue;
         seen.add(k);
-        events.push({ action: st === "approved" ? "approve" : "reject", text: sp.text, type: sp.type });
+        events.push({ action: st === "approved" ? "approve" : "reject", text: sp.text, type: sp.type, source: sp.source });
       }
       queueFeedback(events);
     }
@@ -611,7 +611,10 @@
     $("#learn-n").textContent = String(l.corrections);
     $("#learn-path").textContent = l.path;
     const p = l.precision || {};
-    $("#precision-value").textContent = `${p.before ?? "—"} → ${p.after ?? "—"}`;
+    const fmt = (x) => (x == null ? "—" : `${(x * 100).toFixed(1)}%`);
+    $("#precision-value").textContent = `${fmt(p.before)} → ${fmt(p.after)}`;
+    $("#precision-note").textContent = p.before == null ? "Run eval/run_eval.py to measure." :
+      `Active-learning demo: ${p.note}. Recall ${fmt(p.recall_before)} → ${fmt(p.recall_after)}.`;
     if (!$("#learn-drawer").hidden) renderLearning();
   }
 

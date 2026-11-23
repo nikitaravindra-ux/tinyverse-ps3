@@ -1,0 +1,20 @@
+{
+  "id": "08_qi_woman_director",
+  "focus": "qi",
+  "text": "Name: Anjali Deshmukh\nThe complaint concerns the only woman director of a Pune firm, who joined the board in 2019. Anjali Deshmukh asked that her statement stay confidential.",
+  "people": [
+    {
+      "name": "Anjali Deshmukh",
+      "mentions": [
+        "Anjali Deshmukh"
+      ]
+    }
+  ],
+  "must_not_leak": [
+    "Anjali",
+    "Deshmukh"
+  ],
+  "qi_traps": [
+    "the only woman director of a Pune firm"
+  ]
+}

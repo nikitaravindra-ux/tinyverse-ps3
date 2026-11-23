@@ -1,0 +1,1126 @@
+{
+  "generated": "2026-11-23T15:21:30+00:00",
+  "machine": "arm64 Darwin 25.6.0",
+  "python": "3.11.16",
+  "with_learning": false,
+  "limit": null,
+  "summary_model": "llama3.2:3b",
+  "datasets": {
+    "indian": {
+      "title": "Indian synthetic (Faker en_IN)",
+      "docs": 200,
+      "gold_spans": 1650,
+      "configs": {
+        "regex": {
+          "per_type": {
+            "NAME": {
+              "precision": 1.0,
+              "recall": 0.5323076923076923,
+              "f1": 0.6947791164658633,
+              "tp_pred": 346,
+              "n_pred": 346,
+              "tp_gold": 346,
+              "n_gold": 650
+            },
+            "EMAIL": {
+              "precision": 1.0,
+              "recall": 1.0,
+              "f1": 1.0,
+              "tp_pred": 150,
+              "n_pred": 150,
+              "tp_gold": 150,
+              "n_gold": 150
+            },
+            "PHONE": {
+              "precision": 1.0,
+              "recall": 1.0,
+              "f1": 1.0,
+              "tp_pred": 200,
+              "n_pred": 200,
+              "tp_gold": 200,
+              "n_gold": 200
+            },
+            "ADDRESS": {
+              "precision": 1.0,
+              "recall": 0.68,
+              "f1": 0.8095238095238095,
+              "tp_pred": 102,
+              "n_pred": 102,
+              "tp_gold": 102,
+              "n_gold": 150
+            },
+            "ID": {
+              "precision": 1.0,
+              "recall": 1.0,
+              "f1": 1.0,
+              "tp_pred": 500,
+              "n_pred": 500,
+              "tp_gold": 500,
+              "n_gold": 500
+            }
+          },
+          "micro": {
+            "precision": 1.0,
+            "recall": 0.7866666666666666,
+            "f1": 0.8805970149253731,
+            "tp_pred": 1298,
+            "n_pred": 1298,
+            "tp_gold": 1298,
+            "n_gold": 1650
+          },
+          "sec_per_doc": 0.0007131129200570285
+        },
+        "gliner": {
+          "per_type": {
+            "NAME": {
+              "precision": 0.9846625766871165,
+              "recall": 0.4938461538461538,
+              "f1": 0.6577868852459016,
+              "tp_pred": 321,
+              "n_pred": 326,
+              "tp_gold": 321,
+              "n_gold": 650
+            },
+            "EMAIL": {
+              "precision": 0.75,
+              "recall": 1.0,
+              "f1": 0.8571428571428571,
+              "tp_pred": 150,
+              "n_pred": 200,
+              "tp_gold": 150,
+              "n_gold": 150
+            },
+            "PHONE": {
+              "precision": 1.0,
+              "recall": 0.795,
+              "f1": 0.8857938718662953,
+              "tp_pred": 159,
+              "n_pred": 159,
+              "tp_gold": 159,
+              "n_gold": 200
+            },
+            "ADDRESS": {
+              "precision": 1.0,
+              "recall": 1.0,
+              "f1": 1.0,
+              "tp_pred": 150,
+              "n_pred": 150,
+              "tp_gold": 150,
+              "n_gold": 150
+            },
+            "ID": {
+              "precision": null,
+              "recall": 0.0,
+              "f1": null,
+              "tp_pred": 0,
+              "n_pred": 0,
+              "tp_gold": 0,
+              "n_gold": 500
+            }
+          },
+          "micro": {
+            "precision": 0.9341317365269461,
+            "recall": 0.4727272727272727,
+            "f1": 0.6277665995975855,
+            "tp_pred": 780,
+            "n_pred": 835,
+            "tp_gold": 780,
+            "n_gold": 1650
+          },
+          "sec_per_doc": 0.15139581499970517
+        },
+        "hybrid": {
+          "per_type": {
+            "NAME": {
+              "precision": 0.9904214559386973,
+              "recall": 0.7953846153846154,
+              "f1": 0.8822525597269625,
+              "tp_pred": 517,
+              "n_pred": 522,
+              "tp_gold": 517,
+              "n_gold": 650
+            },
+            "EMAIL": {
+              "precision": 1.0,
+              "recall": 1.0,
+              "f1": 1.0,
+              "tp_pred": 150,
+              "n_pred": 150,
+              "tp_gold": 150,
+              "n_gold": 150
+            },
+            "PHONE": {
+              "precision": 1.0,
+              "recall": 1.0,
+              "f1": 1.0,
+              "tp_pred": 200,
+              "n_pred": 200,
+              "tp_gold": 200,
+              "n_gold": 200
+            },
+            "ADDRESS": {
+              "precision": 1.0,
+              "recall": 1.0,
+              "f1": 1.0,
+              "tp_pred": 150,
+              "n_pred": 150,
+              "tp_gold": 150,
+              "n_gold": 150
+            },
+            "ID": {
+              "precision": 1.0,
+              "recall": 1.0,
+              "f1": 1.0,
+              "tp_pred": 500,
+              "n_pred": 500,
+              "tp_gold": 500,
+              "n_gold": 500
+            }
+          },
+          "micro": {
+            "precision": 0.9967148488830486,
+            "recall": 0.9193939393939394,
+            "f1": 0.9564943253467844,
+            "tp_pred": 1517,
+            "n_pred": 1522,
+            "tp_gold": 1517,
+            "n_gold": 1650
+          },
+          "sec_per_doc": 0.16613739520544185
+        }
+      }
+    },
+    "ai4privacy": {
+      "title": "ai4privacy pii-masking-300k",
+      "docs": 500,
+      "gold_spans": 1365,
+      "configs": {
+        "regex": {
+          "per_type": {
+            "NAME": {
+              "precision": 0.7012987012987013,
+              "recall": 0.1935483870967742,
+              "f1": 0.30337078651685395,
+              "tp_pred": 54,
+              "n_pred": 77,
+              "tp_gold": 54,
+              "n_gold": 279
+            },
+            "EMAIL": {
+              "precision": 0.9451219512195121,
+              "recall": 0.96875,
+              "f1": 0.95679012345679,
+              "tp_pred": 155,
+              "n_pred": 164,
+              "tp_gold": 155,
+              "n_gold": 160
+            },
+            "PHONE": {
+              "precision": 0.6176470588235294,
+              "recall": 0.4772727272727273,
+              "f1": 0.5384615384615384,
+              "tp_pred": 63,
+              "n_pred": 102,
+              "tp_gold": 63,
+              "n_gold": 132
+            },
+            "ADDRESS": {
+              "precision": 0.9743589743589743,
+              "recall": 0.3092369477911647,
+              "f1": 0.46947452868030487,
+              "tp_pred": 76,
+              "n_pred": 78,
+              "tp_gold": 77,
+              "n_gold": 249
+            },
+            "ID": {
+              "precision": 0.9411764705882353,
+              "recall": 0.11743119266055047,
+              "f1": 0.20880913539967375,
+              "tp_pred": 64,
+              "n_pred": 68,
+              "tp_gold": 64,
+              "n_gold": 545
+            }
+          },
+          "micro": {
+            "precision": 0.8425357873210634,
+            "recall": 0.30256410256410254,
+            "f1": 0.4452381606542664,
+            "tp_pred": 412,
+            "n_pred": 489,
+            "tp_gold": 413,
+            "n_gold": 1365
+          },
+          "sec_per_doc": 0.0002955913315527141
+        },
+        "gliner": {
+          "per_type": {
+            "NAME": {
+              "precision": 0.45011600928074247,
+              "recall": 0.6917562724014337,
+              "f1": 0.5453684754823064,
+              "tp_pred": 194,
+              "n_pred": 431,
+              "tp_gold": 193,
+              "n_gold": 279
+            },
+            "EMAIL": {
+              "precision": 0.9575757575757575,
+              "recall": 0.9875,
+              "f1": 0.9723076923076923,
+              "tp_pred": 158,
+              "n_pred": 165,
+              "tp_gold": 158,
+              "n_gold": 160
+            },
+            "PHONE": {
+              "precision": 0.8955223880597015,
+              "recall": 0.9090909090909091,
+              "f1": 0.9022556390977443,
+              "tp_pred": 120,
+              "n_pred": 134,
+              "tp_gold": 120,
+              "n_gold": 132
+            },
+            "ADDRESS": {
+              "precision": 0.8888888888888888,
+              "recall": 0.2931726907630522,
+              "f1": 0.44092110230275566,
+              "tp_pred": 72,
+              "n_pred": 81,
+              "tp_gold": 73,
+              "n_gold": 249
+            },
+            "ID": {
+              "precision": 0.8598130841121495,
+              "recall": 0.1688073394495413,
+              "f1": 0.28220858895705525,
+              "tp_pred": 92,
+              "n_pred": 107,
+              "tp_gold": 92,
+              "n_gold": 545
+            }
+          },
+          "micro": {
+            "precision": 0.6928104575163399,
+            "recall": 0.46593406593406594,
+            "f1": 0.5571616294349541,
+            "tp_pred": 636,
+            "n_pred": 918,
+            "tp_gold": 636,
+            "n_gold": 1365
+          },
+          "sec_per_doc": 0.16856183699984104
+        },
+        "hybrid": {
+          "per_type": {
+            "NAME": {
+              "precision": 0.43863636363636366,
+              "recall": 0.6917562724014337,
+              "f1": 0.5368567454798331,
+              "tp_pred": 193,
+              "n_pred": 440,
+              "tp_gold": 193,
+              "n_gold": 279
+            },
+            "EMAIL": {
+              "precision": 0.9411764705882353,
+              "recall": 1.0,
+              "f1": 0.9696969696969697,
+              "tp_pred": 160,
+              "n_pred": 170,
+              "tp_gold": 160,
+              "n_gold": 160
+            },
+            "PHONE": {
+              "precision": 0.697841726618705,
+              "recall": 0.7348484848484849,
+              "f1": 0.7158671586715867,
+              "tp_pred": 97,
+              "n_pred": 139,
+              "tp_gold": 97,
+              "n_gold": 132
+            },
+            "ADDRESS": {
+              "precision": 0.9090909090909091,
+              "recall": 0.4497991967871486,
+              "f1": 0.6018269747447609,
+              "tp_pred": 110,
+              "n_pred": 121,
+              "tp_gold": 112,
+              "n_gold": 249
+            },
+            "ID": {
+              "precision": 0.9006211180124224,
+              "recall": 0.26605504587155965,
+              "f1": 0.4107648725212465,
+              "tp_pred": 145,
+              "n_pred": 161,
+              "tp_gold": 145,
+              "n_gold": 545
+            }
+          },
+          "micro": {
+            "precision": 0.6838021338506305,
+            "recall": 0.517948717948718,
+            "f1": 0.5894307260581277,
+            "tp_pred": 705,
+            "n_pred": 1031,
+            "tp_gold": 707,
+            "n_gold": 1365
+          },
+          "sec_per_doc": 0.19648296708380802
+        }
+      }
+    },
+    "gretel": {
+      "title": "Gretel synthetic PII finance",
+      "docs": 300,
+      "gold_spans": 958,
+      "configs": {
+        "regex": {
+          "per_type": {
+            "NAME": {
+              "precision": 0.7272727272727273,
+              "recall": 0.2764227642276423,
+              "f1": 0.4005891016200295,
+              "tp_pred": 136,
+              "n_pred": 187,
+              "tp_gold": 136,
+              "n_gold": 492
+            },
+            "EMAIL": {
+              "precision": 0.9545454545454546,
+              "recall": 0.9767441860465116,
+              "f1": 0.9655172413793104,
+              "tp_pred": 84,
+              "n_pred": 88,
+              "tp_gold": 84,
+              "n_gold": 86
+            },
+            "PHONE": {
+              "precision": 0.7368421052631579,
+              "recall": 0.4666666666666667,
+              "f1": 0.5714285714285714,
+              "tp_pred": 28,
+              "n_pred": 38,
+              "tp_gold": 28,
+              "n_gold": 60
+            },
+            "ADDRESS": {
+              "precision": 0.7971014492753623,
+              "recall": 0.46218487394957986,
+              "f1": 0.5851063829787234,
+              "tp_pred": 110,
+              "n_pred": 138,
+              "tp_gold": 110,
+              "n_gold": 238
+            },
+            "ID": {
+              "precision": 0.7222222222222222,
+              "recall": 0.15853658536585366,
+              "f1": 0.26,
+              "tp_pred": 13,
+              "n_pred": 18,
+              "tp_gold": 13,
+              "n_gold": 82
+            }
+          },
+          "micro": {
+            "precision": 0.7910447761194029,
+            "recall": 0.3872651356993737,
+            "f1": 0.5199719691660827,
+            "tp_pred": 371,
+            "n_pred": 469,
+            "tp_gold": 371,
+            "n_gold": 958
+          },
+          "sec_per_doc": 0.0017981743067502975
+        },
+        "gliner": {
+          "per_type": {
+            "NAME": {
+              "precision": 0.5961538461538461,
+              "recall": 0.8191056910569106,
+              "f1": 0.690068493150685,
+              "tp_pred": 403,
+              "n_pred": 676,
+              "tp_gold": 403,
+              "n_gold": 492
+            },
+            "EMAIL": {
+              "precision": 1.0,
+              "recall": 0.5232558139534884,
+              "f1": 0.6870229007633588,
+              "tp_pred": 45,
+              "n_pred": 45,
+              "tp_gold": 45,
+              "n_gold": 86
+            },
+            "PHONE": {
+              "precision": 0.8983050847457628,
+              "recall": 0.8833333333333333,
+              "f1": 0.8907563025210085,
+              "tp_pred": 53,
+              "n_pred": 59,
+              "tp_gold": 53,
+              "n_gold": 60
+            },
+            "ADDRESS": {
+              "precision": 0.8266129032258065,
+              "recall": 0.8613445378151261,
+              "f1": 0.8436213991769548,
+              "tp_pred": 205,
+              "n_pred": 248,
+              "tp_gold": 205,
+              "n_gold": 238
+            },
+            "ID": {
+              "precision": 0.8333333333333334,
+              "recall": 0.12195121951219512,
+              "f1": 0.21276595744680848,
+              "tp_pred": 10,
+              "n_pred": 12,
+              "tp_gold": 10,
+              "n_gold": 82
+            }
+          },
+          "micro": {
+            "precision": 0.6884615384615385,
+            "recall": 0.7473903966597077,
+            "f1": 0.7167167167167168,
+            "tp_pred": 716,
+            "n_pred": 1040,
+            "tp_gold": 716,
+            "n_gold": 958
+          },
+          "sec_per_doc": 0.7242574194469489
+        },
+        "hybrid": {
+          "per_type": {
+            "NAME": {
+              "precision": 0.5599455040871935,
+              "recall": 0.8353658536585366,
+              "f1": 0.67047308319739,
+              "tp_pred": 411,
+              "n_pred": 734,
+              "tp_gold": 411,
+              "n_gold": 492
+            },
+            "EMAIL": {
+              "precision": 0.9545454545454546,
+              "recall": 0.9767441860465116,
+              "f1": 0.9655172413793104,
+              "tp_pred": 84,
+              "n_pred": 88,
+              "tp_gold": 84,
+              "n_gold": 86
+            },
+            "PHONE": {
+              "precision": 0.7794117647058824,
+              "recall": 0.8833333333333333,
+              "f1": 0.8281250000000001,
+              "tp_pred": 53,
+              "n_pred": 68,
+              "tp_gold": 53,
+              "n_gold": 60
+            },
+            "ADDRESS": {
+              "precision": 0.779783393501805,
+              "recall": 0.907563025210084,
+              "f1": 0.8388349514563107,
+              "tp_pred": 216,
+              "n_pred": 277,
+              "tp_gold": 216,
+              "n_gold": 238
+            },
+            "ID": {
+              "precision": 0.72,
+              "recall": 0.21951219512195122,
+              "f1": 0.33644859813084116,
+              "tp_pred": 18,
+              "n_pred": 25,
+              "tp_gold": 18,
+              "n_gold": 82
+            }
+          },
+          "micro": {
+            "precision": 0.6560402684563759,
+            "recall": 0.8162839248434238,
+            "f1": 0.7274418604651164,
+            "tp_pred": 782,
+            "n_pred": 1192,
+            "tp_gold": 782,
+            "n_gold": 958
+          },
+          "sec_per_doc": 0.5393939076402845
+        }
+      }
+    },
+    "nemotron": {
+      "title": "NVIDIA Nemotron-PII",
+      "docs": 300,
+      "gold_spans": 839,
+      "configs": {
+        "regex": {
+          "per_type": {
+            "NAME": {
+              "precision": 0.9122807017543859,
+              "recall": 0.23008849557522124,
+              "f1": 0.3674911660777385,
+              "tp_pred": 52,
+              "n_pred": 57,
+              "tp_gold": 52,
+              "n_gold": 226
+            },
+            "EMAIL": {
+              "precision": 0.9923076923076923,
+              "recall": 1.0,
+              "f1": 0.9961389961389961,
+              "tp_pred": 129,
+              "n_pred": 130,
+              "tp_gold": 129,
+              "n_gold": 129
+            },
+            "PHONE": {
+              "precision": 0.847457627118644,
+              "recall": 0.5882352941176471,
+              "f1": 0.6944444444444444,
+              "tp_pred": 50,
+              "n_pred": 59,
+              "tp_gold": 50,
+              "n_gold": 85
+            },
+            "ADDRESS": {
+              "precision": 0.4444444444444444,
+              "recall": 0.3076923076923077,
+              "f1": 0.3636363636363637,
+              "tp_pred": 16,
+              "n_pred": 36,
+              "tp_gold": 16,
+              "n_gold": 52
+            },
+            "ID": {
+              "precision": 1.0,
+              "recall": 0.09798270893371758,
+              "f1": 0.1784776902887139,
+              "tp_pred": 34,
+              "n_pred": 34,
+              "tp_gold": 34,
+              "n_gold": 347
+            }
+          },
+          "micro": {
+            "precision": 0.8892405063291139,
+            "recall": 0.33492252681764006,
+            "f1": 0.48658008658008667,
+            "tp_pred": 281,
+            "n_pred": 316,
+            "tp_gold": 281,
+            "n_gold": 839
+          },
+          "sec_per_doc": 0.000828106946622332
+        },
+        "gliner": {
+          "per_type": {
+            "NAME": {
+              "precision": 0.7196969696969697,
+              "recall": 0.8362831858407079,
+              "f1": 0.7736223016933086,
+              "tp_pred": 190,
+              "n_pred": 264,
+              "tp_gold": 189,
+              "n_gold": 226
+            },
+            "EMAIL": {
+              "precision": 0.9921259842519685,
+              "recall": 0.9767441860465116,
+              "f1": 0.9843749999999999,
+              "tp_pred": 126,
+              "n_pred": 127,
+              "tp_gold": 126,
+              "n_gold": 129
+            },
+            "PHONE": {
+              "precision": 0.9,
+              "recall": 0.9529411764705882,
+              "f1": 0.9257142857142857,
+              "tp_pred": 81,
+              "n_pred": 90,
+              "tp_gold": 81,
+              "n_gold": 85
+            },
+            "ADDRESS": {
+              "precision": 0.6153846153846154,
+              "recall": 0.9230769230769231,
+              "f1": 0.7384615384615384,
+              "tp_pred": 48,
+              "n_pred": 78,
+              "tp_gold": 48,
+              "n_gold": 52
+            },
+            "ID": {
+              "precision": 0.9066666666666666,
+              "recall": 0.19596541786743515,
+              "f1": 0.3222748815165877,
+              "tp_pred": 68,
+              "n_pred": 75,
+              "tp_gold": 68,
+              "n_gold": 347
+            }
+          },
+          "micro": {
+            "precision": 0.8091482649842271,
+            "recall": 0.6102502979737783,
+            "f1": 0.6957636603246293,
+            "tp_pred": 513,
+            "n_pred": 634,
+            "tp_gold": 512,
+            "n_gold": 839
+          },
+          "sec_per_doc": 0.4004842388901549
+        },
+        "hybrid": {
+          "per_type": {
+            "NAME": {
+              "precision": 0.7210144927536232,
+              "recall": 0.8761061946902655,
+              "f1": 0.7910300937543915,
+              "tp_pred": 199,
+              "n_pred": 276,
+              "tp_gold": 198,
+              "n_gold": 226
+            },
+            "EMAIL": {
+              "precision": 0.9847328244274809,
+              "recall": 1.0,
+              "f1": 0.9923076923076923,
+              "tp_pred": 129,
+              "n_pred": 131,
+              "tp_gold": 129,
+              "n_gold": 129
+            },
+            "PHONE": {
+              "precision": 0.83,
+              "recall": 0.9764705882352941,
+              "f1": 0.8972972972972972,
+              "tp_pred": 83,
+              "n_pred": 100,
+              "tp_gold": 83,
+              "n_gold": 85
+            },
+            "ADDRESS": {
+              "precision": 0.51,
+              "recall": 0.9807692307692307,
+              "f1": 0.6710526315789475,
+              "tp_pred": 51,
+              "n_pred": 100,
+              "tp_gold": 51,
+              "n_gold": 52
+            },
+            "ID": {
+              "precision": 0.9438202247191011,
+              "recall": 0.2420749279538905,
+              "f1": 0.3853211009174312,
+              "tp_pred": 84,
+              "n_pred": 89,
+              "tp_gold": 84,
+              "n_gold": 347
+            }
+          },
+          "micro": {
+            "precision": 0.7844827586206896,
+            "recall": 0.6495828367103695,
+            "f1": 0.7106879034742672,
+            "tp_pred": 546,
+            "n_pred": 696,
+            "tp_gold": 545,
+            "n_gold": 839
+          },
+          "sec_per_doc": 0.4609746627796752
+        }
+      }
+    }
+  },
+  "hard_negatives": {
+    "regex": {
+      "false_positive_rate": 0.0,
+      "flagged": 0,
+      "total": 1000,
+      "by_kind": {
+        "amount": {
+          "flagged": 0,
+          "total": 200
+        },
+        "date": {
+          "flagged": 0,
+          "total": 200
+        },
+        "invalid_aadhaar": {
+          "flagged": 0,
+          "total": 200
+        },
+        "invoice": {
+          "flagged": 0,
+          "total": 100
+        },
+        "isbn": {
+          "flagged": 0,
+          "total": 100
+        },
+        "sku": {
+          "flagged": 0,
+          "total": 150
+        },
+        "version": {
+          "flagged": 0,
+          "total": 50
+        }
+      }
+    },
+    "gliner": {
+      "false_positive_rate": 0.0,
+      "flagged": 0,
+      "total": 1000,
+      "by_kind": {
+        "amount": {
+          "flagged": 0,
+          "total": 200
+        },
+        "date": {
+          "flagged": 0,
+          "total": 200
+        },
+        "invalid_aadhaar": {
+          "flagged": 0,
+          "total": 200
+        },
+        "invoice": {
+          "flagged": 0,
+          "total": 100
+        },
+        "isbn": {
+          "flagged": 0,
+          "total": 100
+        },
+        "sku": {
+          "flagged": 0,
+          "total": 150
+        },
+        "version": {
+          "flagged": 0,
+          "total": 50
+        }
+      }
+    },
+    "hybrid": {
+      "false_positive_rate": 0.0,
+      "flagged": 0,
+      "total": 1000,
+      "by_kind": {
+        "amount": {
+          "flagged": 0,
+          "total": 200
+        },
+        "date": {
+          "flagged": 0,
+          "total": 200
+        },
+        "invalid_aadhaar": {
+          "flagged": 0,
+          "total": 200
+        },
+        "invoice": {
+          "flagged": 0,
+          "total": 100
+        },
+        "isbn": {
+          "flagged": 0,
+          "total": 100
+        },
+        "sku": {
+          "flagged": 0,
+          "total": 150
+        },
+        "version": {
+          "flagged": 0,
+          "total": 50
+        }
+      }
+    }
+  },
+  "linking": {
+    "pairwise_accuracy": 1.0,
+    "pairs": 55,
+    "correct_pairs": 55,
+    "mention_recall": 1.0,
+    "mentions": 35,
+    "per_doc": [
+      {
+        "doc": "01_offer_variants",
+        "pairs": 15,
+        "correct": 15,
+        "mentions": 6,
+        "missed": []
+      },
+      {
+        "doc": "02_two_sharmas",
+        "pairs": 15,
+        "correct": 15,
+        "mentions": 6,
+        "missed": []
+      },
+      {
+        "doc": "03_father_and_son",
+        "pairs": 6,
+        "correct": 6,
+        "mentions": 4,
+        "missed": []
+      },
+      {
+        "doc": "04_gender_conflict",
+        "pairs": 6,
+        "correct": 6,
+        "mentions": 4,
+        "missed": []
+      },
+      {
+        "doc": "05_caps_header",
+        "pairs": 6,
+        "correct": 6,
+        "mentions": 4,
+        "missed": []
+      },
+      {
+        "doc": "06_leak_ids",
+        "pairs": 1,
+        "correct": 1,
+        "mentions": 2,
+        "missed": []
+      },
+      {
+        "doc": "07_obfuscated_contacts",
+        "pairs": 3,
+        "correct": 3,
+        "mentions": 3,
+        "missed": []
+      },
+      {
+        "doc": "08_qi_woman_director",
+        "pairs": 1,
+        "correct": 1,
+        "mentions": 2,
+        "missed": []
+      },
+      {
+        "doc": "09_qi_cfo_age",
+        "pairs": 1,
+        "correct": 1,
+        "mentions": 2,
+        "missed": []
+      },
+      {
+        "doc": "10_qi_principal_health",
+        "pairs": 1,
+        "correct": 1,
+        "mentions": 2,
+        "missed": []
+      }
+    ]
+  },
+  "summaries": {
+    "summary_leaks": 0,
+    "docs": 10,
+    "auditor_interventions": 0,
+    "avg_summary_seconds": 8.461920558381825,
+    "methods": [
+      "llm"
+    ],
+    "qi_traps_flagged": 3,
+    "qi_traps_total": 3,
+    "per_doc": [
+      {
+        "doc": "01_offer_variants",
+        "method": "llm",
+        "leaks": 0,
+        "leaked_kinds": 0,
+        "survived_redaction": 0,
+        "audit_initial_hits": 0,
+        "regenerated": false,
+        "replaced": 0,
+        "checks": 17,
+        "seconds": 13.88,
+        "qi_traps": []
+      },
+      {
+        "doc": "02_two_sharmas",
+        "method": "llm",
+        "leaks": 0,
+        "leaked_kinds": 0,
+        "survived_redaction": 0,
+        "audit_initial_hits": 0,
+        "regenerated": false,
+        "replaced": 0,
+        "checks": 13,
+        "seconds": 7.16,
+        "qi_traps": []
+      },
+      {
+        "doc": "03_father_and_son",
+        "method": "llm",
+        "leaks": 0,
+        "leaked_kinds": 0,
+        "survived_redaction": 0,
+        "audit_initial_hits": 0,
+        "regenerated": false,
+        "replaced": 0,
+        "checks": 10,
+        "seconds": 7.35,
+        "qi_traps": []
+      },
+      {
+        "doc": "04_gender_conflict",
+        "method": "llm",
+        "leaks": 0,
+        "leaked_kinds": 0,
+        "survived_redaction": 0,
+        "audit_initial_hits": 0,
+        "regenerated": false,
+        "replaced": 0,
+        "checks": 10,
+        "seconds": 7.35,
+        "qi_traps": []
+      },
+      {
+        "doc": "05_caps_header",
+        "method": "llm",
+        "leaks": 0,
+        "leaked_kinds": 0,
+        "survived_redaction": 0,
+        "audit_initial_hits": 0,
+        "regenerated": false,
+        "replaced": 0,
+        "checks": 12,
+        "seconds": 6.96,
+        "qi_traps": []
+      },
+      {
+        "doc": "06_leak_ids",
+        "method": "llm",
+        "leaks": 0,
+        "leaked_kinds": 0,
+        "survived_redaction": 0,
+        "audit_initial_hits": 0,
+        "regenerated": false,
+        "replaced": 0,
+        "checks": 13,
+        "seconds": 7.2,
+        "qi_traps": []
+      },
+      {
+        "doc": "07_obfuscated_contacts",
+        "method": "llm",
+        "leaks": 0,
+        "leaked_kinds": 0,
+        "survived_redaction": 0,
+        "audit_initial_hits": 0,
+        "regenerated": false,
+        "replaced": 0,
+        "checks": 13,
+        "seconds": 8.79,
+        "qi_traps": []
+      },
+      {
+        "doc": "08_qi_woman_director",
+        "method": "llm",
+        "leaks": 0,
+        "leaked_kinds": 0,
+        "survived_redaction": 0,
+        "audit_initial_hits": 0,
+        "regenerated": false,
+        "replaced": 0,
+        "checks": 5,
+        "seconds": 8.2,
+        "qi_traps": [
+          {
+            "trap": "the only woman director of a Pune firm",
+            "level": "high",
+            "flagged": true,
+            "explanation": "City + organisation type + rare attribute could single out one person."
+          }
+        ]
+      },
+      {
+        "doc": "09_qi_cfo_age",
+        "method": "llm",
+        "leaks": 0,
+        "leaked_kinds": 0,
+        "survived_redaction": 0,
+        "audit_initial_hits": 0,
+        "regenerated": false,
+        "replaced": 0,
+        "checks": 6,
+        "seconds": 7.72,
+        "qi_traps": [
+          {
+            "trap": "The 52-year-old CFO of a 40-person Nashik logistics company",
+            "level": "high",
+            "flagged": true,
+            "explanation": "Role + city + company size + age could single out one person."
+          }
+        ]
+      },
+      {
+        "doc": "10_qi_principal_health",
+        "method": "llm",
+        "leaks": 0,
+        "leaked_kinds": 0,
+        "survived_redaction": 0,
+        "audit_initial_hits": 0,
+        "regenerated": false,
+        "replaced": 0,
+        "checks": 7,
+        "seconds": 10.0,
+        "qi_traps": [
+          {
+            "trap": "The principal of the only girls' school in Tumakuru, currently on maternity leave",
+            "level": "high",
+            "flagged": true,
+            "explanation": "Role + city + organisation type + health detail could single out one person."
+          }
+        ]
+      }
+    ]
+  },
+  "active_learning": {
+    "train_docs": 20,
+    "test_docs": 30,
+    "approvals": 151,
+    "rejections": 1,
+    "rules_learned": 149,
+    "rule_kinds": {
+      "allowlist": 1,
+      "denylist": 148,
+      "shape": 0,
+      "candidate": 0
+    },
+    "thresholds": {
+      "ADDRESS": 0.253,
+      "EMAIL": 0.253,
+      "ID": 0.45,
+      "NAME": 0.25,
+      "PHONE": 0.25
+    },
+    "precision_before": 0.9957081545064378,
+    "precision_after": 0.9957446808510638,
+    "recall_before": 0.9169960474308301,
+    "recall_after": 0.924901185770751,
+    "f1_before": 0.9547325102880658,
+    "f1_after": 0.9590163934426229,
+    "fp_before": 1,
+    "fp_after": 1
+  },
+  "peak_ram_mb": 1685.6875,
+  "runtime_seconds": 1003.2919739577919
+}

@@ -153,7 +153,7 @@ def audit_summary(summary: str, removed: list[dict], entities: list[dict], redac
 
     for eid, p in people:
         sur = p.get("surname")
-        if sur and len(sur) >= 3 and sur.lower() not in src_lower.split():
+        if sur and len(sur) >= 3:  # a removed person's surname is a leak wherever it appears
             checks += 1
             for m in _word_re(sur).finditer(summary):
                 hit("surname", "NAME", m.start(), m.end(), eid)
@@ -169,7 +169,8 @@ def audit_summary(summary: str, removed: list[dict], entities: list[dict], redac
 
     for m in re.finditer(r"\b[A-Z][a-z]{3,}\b", summary):
         word = m.group(0)
-        if word in _COMMON_CAPS or word.lower() in src_lower.split():
+        exact_name = any(word.lower() == t.lower() for t in name_tokens)
+        if word in _COMMON_CAPS or (word.lower() in src_lower.split() and not exact_name):
             continue
         checks += 1
         for tok, eid in name_tokens.items():

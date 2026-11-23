@@ -1,0 +1,24 @@
+{
+  "id": "07_obfuscated_contacts",
+  "focus": "leaks",
+  "text": "Name: Meera Krishnan\nFor follow-up, Dr. Krishnan can be reached at meera.k [at] outlook [dot] com or on 080-4123 5678. Her UPI handle is meerak@okaxis. Dr. Meera Krishnan approved the reimbursement of Rs. 84,250 for the conference.",
+  "people": [
+    {
+      "name": "Meera Krishnan",
+      "mentions": [
+        "Meera Krishnan",
+        "Dr. Krishnan",
+        "Dr. Meera Krishnan"
+      ]
+    }
+  ],
+  "must_not_leak": [
+    "Meera",
+    "Krishnan",
+    "meera.k",
+    "4123",
+    "5678",
+    "meerak"
+  ],
+  "qi_traps": []
+}
