@@ -559,10 +559,32 @@ def _gliner_sane(span: dict) -> bool:
     return len(t) >= 6  # ADDRESS
 
 
-def gliner_spans(text: str, threshold: float = GLINER_THRESHOLD) -> list[dict]:
+GLINER_FLOOR = 0.25  # lowest threshold learning may set; raw predictions are cached at this floor
+_gliner_cache: "dict[str, list[dict]]" = {}
+
+
+def gliner_spans(text: str, threshold: float = GLINER_THRESHOLD,
+                 type_thresholds: Optional[dict] = None) -> list[dict]:
+    """GLiNER spans filtered per type. Raw predictions are cached per text, so re-running
+    detection after a feedback event (new thresholds) does not call the model again."""
+    import hashlib
+
+    key = hashlib.sha256(text.encode()).hexdigest()
+    if key not in _gliner_cache:
+        raw = _gliner_raw(text, min(GLINER_FLOOR, threshold))
+        if raw is None:
+            return []
+        if len(_gliner_cache) > 32:
+            _gliner_cache.pop(next(iter(_gliner_cache)))
+        _gliner_cache[key] = raw
+    th = type_thresholds or {}
+    return [dict(sp) for sp in _gliner_cache[key] if sp["confidence"] >= th.get(sp["type"], threshold)]
+
+
+def _gliner_raw(text: str, threshold: float) -> Optional[list[dict]]:
     model = load_model()
     if model is None:
-        return []
+        return None
     out = []
     for cs, ce in _chunks(text):
         chunk = text[cs:ce]
@@ -763,13 +785,14 @@ def _split_names(spans: list[dict], text: str) -> list[dict]:
     return out
 
 
-def detect(text: str, use_ner: bool = True, threshold: float = GLINER_THRESHOLD) -> list[dict]:
+def detect(text: str, use_ner: bool = True, threshold: float = GLINER_THRESHOLD,
+           type_thresholds: Optional[dict] = None) -> list[dict]:
     """Detect PII spans in ``text``. Falls back to rules if GLiNER is unavailable."""
     if not text or not text.strip():
         return []
     guards = protected_ranges(text)
     rules = rule_spans(text, guards)
-    gl = gliner_spans(text, threshold) if use_ner else []
+    gl = gliner_spans(text, threshold, type_thresholds) if use_ner else []
     candidates = _boost(gl, rules) if gl else rules
 
     kept = []

@@ -12,7 +12,12 @@ from fastapi.responses import FileResponse
 from fastapi.staticfiles import StaticFiles
 from pydantic import BaseModel
 
-from app import detect as detector
+from app import netguard
+
+netguard.install()  # block + count every non-localhost connection from here on
+
+from app import detect as detector  # noqa: E402
+from app import learn  # noqa: E402
 from app.config import OLLAMA_URL, SUMMARY_MODEL
 from app.link import link
 from app import audit, redact
@@ -72,7 +77,8 @@ def _ollama_status() -> dict:
 
 @app.get("/api/status")
 def status() -> dict:
-    return {"detector": detector.detector_status(), "ollama": _ollama_status()}
+    return {"detector": detector.detector_status(), "ollama": _ollama_status(),
+            "network": netguard.status(), "learning": {"corrections": learn.summary()["corrections"]}}
 
 
 @app.post("/api/detect")
@@ -113,10 +119,15 @@ def extract_text(filename: str, data: bytes) -> str:
         return data.decode("latin-1")
 
 
-def analyze_text(text: str, filename: str = "pasted.txt") -> dict:
+def analyze_text(text: str, filename: str = "pasted.txt", manual_spans: Optional[list] = None) -> dict:
     text = text.replace("\r\n", "\n")
-    spans = detector.detect(text)
-    spans, entities = link(text, spans)
+    state = learn.load()
+    spans = detector.detect(text, type_thresholds=learn.thresholds(state))
+    spans = learn.apply(text, spans, state)
+    for m in manual_spans or []:  # keep this session's manual redactions
+        spans = [s for s in spans if not (s["start"] < m["end"] and s["end"] > m["start"])]
+        spans.append({k: m[k] for k in ("start", "end", "text", "type")} | {"confidence": 1.0, "source": "manual"})
+    spans, entities = link(text, sorted(spans, key=lambda s: s["start"]))
     return {"filename": filename, "text": text, "spans": spans, "entities": entities,
             "detector": detector.detector_status()}
 
@@ -192,6 +203,50 @@ def summarize(req: SummaryRequest) -> dict:
 @app.post("/api/qi")
 def qi(req: QIRequest) -> dict:
     return audit.qi_report(req.text)
+
+
+class FeedbackRequest(BaseModel):
+    events: list[dict]                 # [{action: approve|reject|manual, text, type}]
+    text: Optional[str] = None         # current document: re-analysed after learning
+    filename: str = "document.txt"
+    manual_spans: list[dict] = []
+
+
+@app.post("/api/feedback")
+def feedback(req: FeedbackRequest) -> dict:
+    learned = learn.record(req.events)
+    out = {"learning": learned}
+    if req.text is not None:
+        out["analysis"] = analyze_text(req.text, req.filename, req.manual_spans)
+    return out
+
+
+@app.get("/api/learn")
+def learned() -> dict:
+    return learn.summary()
+
+
+class UndoRequest(BaseModel):
+    rule_id: str
+    text: Optional[str] = None
+    filename: str = "document.txt"
+    manual_spans: list[dict] = []
+
+
+@app.post("/api/learn/undo")
+def undo(req: UndoRequest) -> dict:
+    if not learn.undo(req.rule_id):
+        raise HTTPException(404, "No such learned rule.")
+    out = {"learning": learn.summary()}
+    if req.text is not None:
+        out["analysis"] = analyze_text(req.text, req.filename, req.manual_spans)
+    return out
+
+
+@app.post("/api/learn/reset")
+def reset_learning() -> dict:
+    learn.reset()
+    return {"learning": learn.summary()}
 
 
 @app.get("/api/samples")
