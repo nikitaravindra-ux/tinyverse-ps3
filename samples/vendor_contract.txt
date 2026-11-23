@@ -1,0 +1,59 @@
+MASTER SERVICES AGREEMENT
+Contract No: MSA/2025/118                           Effective Date: 01-04-2025
+
+This Master Services Agreement ("Agreement") is entered into at Pune on this
+12th day of March 2025 by and between:
+
+DHRUVA LOGISTICS PRIVATE LIMITED, a company incorporated under the Companies Act,
+2013, having its registered office at Plot 47, Sector 18, MIDC Bhosari,
+Pune, Maharashtra 411026, represented by its Director, Mr. Rohan Kulkarni
+(hereinafter "the Client");
+
+AND
+
+SWIFTFLEET TRANSPORT SERVICES, a proprietorship firm owned by Mrs. Sunita Patil,
+having its office at Shop No. 3, Shivaji Nagar, Nashik Road, Nashik 422101
+(hereinafter "the Vendor").
+
+1. SCOPE OF SERVICES
+The Vendor shall provide last-mile delivery services for products including
+SKU-88213-B and SKU-90114-A as listed in Purchase Order PO-55120, at the rates in
+Annexure A. The Vendor shall maintain the fleet tracking software at version
+3.1.4 or later.
+
+2. FEES AND PAYMENT
+2.1 The Client shall pay the Vendor a monthly retainer of ₹ 2,75,000 plus GST.
+2.2 Payments shall be made by NEFT to the Vendor's account:
+    Account Holder: Sunita Patil
+    Bank: State Bank of India, Nashik Road Branch
+    Account No: 30987654321
+    IFSC: SBIN0003456
+    UPI (for petty reimbursements): sunitapatil@oksbi
+2.3 Invoices (e.g. INV-2025-0091) are payable within 30 days. Order references
+    such as order #448812339021 must be quoted on every invoice.
+
+3. KEY CONTACTS
+For the Client: Rohan Kulkarni, Director - rohan.kulkarni@dhruvalogistics.co.in,
++91 90110 44556
+For the Vendor: Sunita Patil, Proprietor - sunita.swiftfleet@gmail.com,
+020-2765 4321 / 9822012345
+Mrs. Patil's PAN: DLMPP4410Q; Aadhaar: 8392 0174 6539.
+
+4. CONFIDENTIALITY
+Each party shall keep confidential all information received from the other,
+including personal data of employees and drivers, in accordance with the Digital
+Personal Data Protection Act, 2023. Reference: ISBN 978-81-203-4567-8 (Model
+Contract Clauses, 2nd ed.).
+
+5. TERM
+This Agreement is valid until 31/03/2027 and may be renewed by mutual consent.
+
+IN WITNESS WHEREOF the parties have signed this Agreement on 12/03/2025.
+
+For Dhruva Logistics Pvt. Ltd.          For SwiftFleet Transport Services
+
+_________________________               _________________________
+Rohan Kulkarni                          Sunita Patil
+Director                                Proprietor
+
+Witness: Ms. Kavya Joshi, Legal Associate, Dhruva Logistics

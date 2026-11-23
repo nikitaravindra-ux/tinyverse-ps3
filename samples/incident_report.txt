@@ -1,0 +1,44 @@
+INFORMATION SECURITY INCIDENT REPORT
+Incident ID: INC-2025-0042           Severity: High           Status: Closed
+Reported on: 12/03/2025 14:20 IST    Report template version 1.4.2
+
+1. REPORTER
+Reported by: Ananya Deshpande (Employee ID: EMP-20417), SOC Analyst
+Contact: ananya.d@zentrixsystems.com | Ext. 4410 | Mobile: 70221 88345
+
+2. SUMMARY
+At approximately 09:05 AM on 11 March 2025, an automated DLP alert flagged an
+outbound email from the finance shared mailbox containing an unencrypted Excel
+sheet. The sheet, titled "Vendor_Payments_Q4.xlsx", listed payment details for
+order #448812339021 and product SKU-88213-B, along with personal details of a
+contractor, Mr. Farhan Qureshi.
+
+The exposed record contained Mr. Qureshi's PAN (CDFPQ1093L), Aadhaar number
+615273849102, mobile number +91 88845 67012 and residential address at
+House No. 221, 14th Cross, Indiranagar 2nd Stage, Bengaluru 560038.
+It also included his personal email farhan.q [at] yahoo [dot] co [dot] in and UPI
+handle farhanq@ybl.
+
+The email was addressed to an external domain (accounts@vendorhub-payments.net)
+which is not on the approved vendor list. Invoice INV-2025-7781 for Rs. 3,45,600
+was attached.
+
+3. TIMELINE
+09:05 AM - DLP alert raised (rule DLP-PII-07)
+09:12 AM - Ananya escalated to the SOC lead, Mr. Karthik Rao
+09:40 AM - Mailbox access revoked; sender identified as K. Bhat (EMP-11870)
+11:30 AM - Recipient domain contacted via +44 20 7946 0958 (vendor UK office)
+02:15 PM - Recipient confirmed deletion in writing
+
+4. ROOT CAUSE
+Mr. Bhat used an auto-complete address while sending the payment reconciliation
+sheet. No malicious intent was found. Note: reference number 234567890123 in the
+sheet is a legacy ledger key and is not an Aadhaar number.
+
+5. CORRECTIVE ACTIONS
+- Mandatory re-training for finance team by 31/03/2025
+- DLP policy v2.0 to block unencrypted spreadsheets with Aadhaar/PAN patterns
+- Notify affected individual (Mr. Qureshi) by registered post
+
+Reviewed by: Karthik Rao, SOC Lead
+Approved by: Dr. Meera Krishnan, CISO

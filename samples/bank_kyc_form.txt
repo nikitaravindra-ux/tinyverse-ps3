@@ -1,0 +1,44 @@
+KAVERI CO-OPERATIVE BANK LTD.
+Customer Due Diligence / KYC Update Form            Form version v3.2.0
+Branch: Jayanagar 4th Block, Bengaluru              Branch Code: 0457
+
+SECTION A - PERSONAL DETAILS
+Full Name: Venkatesh Ramaswamy Iyer
+Father's Name: Ramaswamy Iyer
+Date of Birth: 14/08/1986
+Gender: Male
+Customer ID: KCB00981234
+Mobile: +91 99001 23456
+Alternate Phone: (080) 2663 4521
+Email: venkat.iyer86@outlook.com
+Alternate Email: v.iyer(at)rediffmail.com
+
+SECTION B - ADDRESS
+Residential Address: No. 17, 2nd Main Road, Jayanagar 4th Block, Bengaluru 560011
+Permanent Address: Door No. 4-12, Gandhi Nagar, Near Bus Stand, Tumakuru, Karnataka 572102
+
+SECTION C - IDENTITY DOCUMENTS
+Aadhaar Number: 4918 3726 4503
+PAN: AJKPI7765M
+Passport No: Z4831726
+Voter ID (EPIC): KAR1234567
+
+SECTION D - ACCOUNT & PAYMENT DETAILS
+Savings Account Number: 001234500067891
+IFSC: KCBL0000457
+UPI ID: venkat.iyer@okaxis
+Debit Card: 4532 0151 1283 0366 (Exp 08/28)
+Nominee: Lakshmi V. Iyer (Spouse)
+
+SECTION E - FOR OFFICE USE ONLY
+Application Ref No: KYC/2025/004418
+Received on: 2025-03-12 at 11:45 hrs
+Processing fee collected: Rs 250 (receipt no. 448812339021)
+Old customer reference 987654321098 (migrated from legacy core banking v1.8)
+Verified by: S. Kulkarni, Officer Grade II (Emp ID: KCB-E-2231)
+
+Declaration: I hereby declare that the information provided above is true and correct.
+
+Signature of Applicant: ______________________
+Venkatesh R. Iyer
+Place: Bengaluru                                    Date: 12 March 2025

@@ -1,0 +1,23 @@
+ORION HEALTHCARE TPA SERVICES PVT. LTD.
+Medical Reimbursement Claim Form                    Claim No: CLM-2025-30871
+
+Claimant Name: Richa Sharma
+Employee ID: EMP-10293            Employer: Nimbus Softlabs Private Limited
+Policy No: GHI/2025/556621        Date of Claim: 12/03/2025
+Mobile: +91 98450 67890           Email: richa.sharma92@gmail.com
+Address: Flat 302, Lakeview Residency, 5th Cross, HSR Layout Sector 2,
+Bengaluru, Karnataka 560102
+
+Patient: Richa Sharma (Self)      Hospital: Sakra Hospital, Bellandur
+Admission: 03/03/2025 08:15 AM    Discharge: 05/03/2025 04:30 PM
+Total bill amount: Rs. 84,250/-   Pharmacy bill no. PH-77120
+
+Bank details for reimbursement:
+A/c No: 50100234567812    IFSC: HDFC0001234
+PAN: BQRPS4821K
+
+I, R. Sharma, certify that the above information is correct. Ms. Sharma has not
+claimed this amount under any other policy. Order #448812339021 (pharmacy
+home-delivery) and item SKU-88213-B are included in the pharmacy bill.
+
+Signature: Richa Sharma                     Date: 12/03/2025
