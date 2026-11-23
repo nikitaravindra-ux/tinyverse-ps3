@@ -207,7 +207,7 @@ python eval/run_eval.py --with-learning          # apply data/learned.json inste
 ```
 app/        main.py (API) · detect.py · link.py · redact.py · summarize.py · audit.py
             learn.py · netguard.py · config.py · fetch_model.py · fonts/ (DejaVu Sans)
-static/     index.html · styles.css · app.js · fonts/ (Montserrat, Gloock)
+static/     index.html · styles.css · app.js · fonts/ (Montserrat)
 samples/    4 synthetic Indian documents (TXT) + 1 text PDF
 eval/       load_datasets.py · make_indian_set.py · run_eval.py · handmade/ · data/
             results.md · results.json · results.png · label_mapping.md
@@ -223,6 +223,6 @@ All sample and evaluation documents are synthetic. Every name, Aadhaar, PAN and 
 - [Ollama](https://ollama.com) and Meta's [Llama 3.2](https://www.llama.com) (3B)
 - Datasets: [ai4privacy/pii-masking-300k](https://huggingface.co/datasets/ai4privacy/pii-masking-300k), [gretelai/synthetic_pii_finance_multilingual](https://huggingface.co/datasets/gretelai/synthetic_pii_finance_multilingual), [nvidia/nemotron-pii](https://huggingface.co/datasets/nvidia/nemotron-pii)
 - [Faker](https://faker.readthedocs.io), [FastAPI](https://fastapi.tiangolo.com), [pypdf](https://pypdf.readthedocs.io), [reportlab](https://www.reportlab.com/opensource/)
-- Fonts: [DejaVu Sans](https://dejavu-fonts.github.io) (PDF export), [Montserrat](https://github.com/JulietaUla/Montserrat) and Gloock (UI), all bundled locally under their open licences
+- Fonts: [DejaVu Sans](https://dejavu-fonts.github.io) (PDF export) and [Montserrat](https://github.com/JulietaUla/Montserrat) (UI), bundled locally under their open licences; headings use the system Georgia font
 
 **AI assistance:** AI coding tools were used for parts of the implementation; all design decisions, evaluation and the final code were reviewed and are understood by the author.
