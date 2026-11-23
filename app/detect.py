@@ -15,13 +15,14 @@ import re
 import threading
 from typing import Callable, Iterable, Optional
 
+from app.config import GLINER_MODEL, ORG_ADDRESS_CONFIDENCE
+
 log = logging.getLogger(__name__)
 
-TYPES = ("NAME", "EMAIL", "PHONE", "ADDRESS", "ID")
+TYPES = ("NAME", "EMAIL", "PHONE", "ADDRESS", "ORG_ADDRESS", "ID")
 CONF_VALIDATED = 0.97
 CONF_REGEX = 0.80
 
-GLINER_MODEL = "urchade/gliner_multi_pii-v1"
 GLINER_LABELS = ["person", "email", "phone number", "address", "id number"]
 GLINER_TO_TYPE = {
     "person": "NAME",
@@ -244,7 +245,13 @@ _NAME_STOPWORDS = {
     "With", "From", "As", "An", "It", "Is", "We", "Our", "Your", "All", "Any", "Each", "No",
     "Note", "Section", "Annexure", "Schedule", "Clause", "Part", "Table", "Figure", "Box",
     "Ltd", "Pvt", "Inc", "Co", "Road", "Nagar", "Street", "Block", "Main", "Cross",
+    "Date", "Place", "Signature", "Name", "Dear", "Regards", "Sincerely", "Director", "Manager",
 }
+
+
+def _all_stopwords(s: str) -> bool:
+    words = [w.strip(".,") for w in s.split()]
+    return bool(words) and all(w in _NAME_STOPWORDS for w in words)
 
 
 def _has_stopword(s: str) -> bool:
@@ -359,12 +366,12 @@ RULES: list[Rule] = [
          mode="context", group=1),
     # --- NAME (fallback-quality; GLiNER does the heavy lifting) -----------
     Rule("name_honorific", "NAME",
-         rf"\b{_HONORIFIC}\.?[ ]+(?:[A-Z]\.[ ]?){{0,2}}{_NAME_WORD}(?:[ ]+{_NAME_WORD}){{0,2}}",
+         rf"\b{_HONORIFIC}\.?[ ](?:[A-Z]\.[ ]?){{0,2}}{_NAME_WORD}(?:[ ]{_NAME_WORD}){{0,2}}",
          validator=lambda s: not _has_stopword(s.split(None, 1)[-1]), mode="require_plain"),
     Rule("name_initial", "NAME", rf"\b(?:{_NAME_WORD}[ ])?(?:[A-Z]\.[ ]?){{1,2}}[A-Z][a-z]{{2,}}\b",
          validator=lambda s: not _has_stopword(s), mode="require_plain"),
     Rule("name_label", "NAME",
-         rf"\b{_NAME_LABELS}[ \t]*[:\-][ \t]*((?:{_HONORIFIC}\.?[ ]+)?{_NAME_WORD}(?:[ ]+(?:[A-Z]\.|{_NAME_WORD})){{0,3}})",
+         rf"\b{_NAME_LABELS}[ \t]*[:\-][ \t]*((?:{_HONORIFIC}\.?[ ])?{_NAME_WORD}(?:[ ](?:[A-Z]\.|{_NAME_WORD})){{0,3}})",
          mode="context", group=1),
 ]
 
@@ -537,7 +544,7 @@ def _gliner_sane(span: dict) -> bool:
     if not t:
         return False
     if typ == "NAME":
-        return t[0].isupper() and not re.search(r"\d|@", t) and len(t) >= 2
+        return t[0].isupper() and not re.search(r"\d|@", t) and len(t) >= 2 and not _all_stopwords(t)
     if typ == "EMAIL":
         return "@" in t or normalize_email(t) is not None
     if typ == "PHONE":
@@ -573,7 +580,7 @@ def gliner_spans(text: str, threshold: float = GLINER_THRESHOLD) -> list[dict]:
 # ---------------------------------------------------------------------------
 # Fusion
 # ---------------------------------------------------------------------------
-_TYPE_PRIORITY = {"EMAIL": 5, "ID": 4, "PHONE": 3, "ADDRESS": 2, "NAME": 1}
+_TYPE_PRIORITY = {"EMAIL": 5, "ID": 4, "PHONE": 3, "ADDRESS": 2, "ORG_ADDRESS": 2, "NAME": 1}
 _STRUCTURED = {"EMAIL", "PHONE", "ID"}
 
 
@@ -677,6 +684,80 @@ def _tidy(span: dict, text: str) -> Optional[dict]:
     return span
 
 
+# ---------------------------------------------------------------------------
+# Organisation vs personal addresses
+# ---------------------------------------------------------------------------
+_ORG_CONTEXT = re.compile(
+    r"(?i)\b(?:registered|regd\.?|corporate|head|branch|site|works|factory)\s+office\b"
+    r"|\b(?:its|our|the\s+company'?s|company)\s+(?:registered\s+)?(?:office|premises|address)\b"
+    r"|\boffice\s+(?:at|address)\b|\bbranch\b|\bwarehouse\b|\bfactory\b|\bcampus\b|\bheadquarter"
+)
+_ORG_NAME = re.compile(
+    r"\b(?:Pvt|Private|Limited|Ltd|LLP|Inc|Corp|Corporation|Company|Bank|Technologies|Solutions|"
+    r"Services|Softlabs|Systems|Logistics|Industries|Enterprises|Hospital|University|Institute|TPA)\b",
+    re.I,
+)
+_PERSONAL_CONTEXT = re.compile(
+    r"(?i)\b(?:residential|residence|resides?|residing|home|permanent|current|personal|lives|living|"
+    r"staying|correspondence|his|her|their)\b"
+)
+_ORG_LABEL = re.compile(r"(?i)\b(?:registered|regd\.?|office|business|company|branch|corporate|billing)\s+address\s*[:\-]")
+
+
+def _is_org_address(span: dict, text: str) -> bool:
+    """Letterhead / registered-office / company addresses (not personal data)."""
+    ls = text.rfind("\n", 0, span["start"]) + 1
+    before = text[ls:span["start"]]
+    if not before.strip() and ls > 0:  # address starts the line: look at the previous line
+        pls = text.rfind("\n", 0, ls - 1) + 1
+        prev = text[pls:ls - 1]
+        if _ORG_LABEL.search(prev):
+            return True
+        # letterhead: an ALL-CAPS company line directly above
+        letters = re.sub(r"[^A-Za-z]", "", prev)
+        if letters and letters.isupper() and len(prev.split()) >= 2 and _ORG_NAME.search(prev):
+            return True
+        if _PERSONAL_CONTEXT.search(prev):
+            return False
+        before = prev
+    if _ORG_LABEL.search(before):
+        return True
+    org = [m.end() for m in _ORG_CONTEXT.finditer(before)]
+    per = [m.end() for m in _PERSONAL_CONTEXT.finditer(before)]
+    if org and (not per or org[-1] > per[-1]):
+        return True
+    # address within the first lines of the document right under a company header
+    if span["start"] < 250 and _ORG_NAME.search(text[:span["start"]]) and not per:
+        head = text[:span["start"]]
+        return head.count("\n") <= 3
+    return False
+
+
+def classify_addresses(spans: list[dict], text: str) -> list[dict]:
+    for sp in spans:
+        if sp["type"] == "ADDRESS" and _is_org_address(sp, text):
+            sp["type"] = "ORG_ADDRESS"
+            sp["confidence"] = ORG_ADDRESS_CONFIDENCE
+    return spans
+
+
+def _split_names(spans: list[dict], text: str) -> list[dict]:
+    """A NAME never spans a line break or a column gap (e.g. two signature blocks side by side)."""
+    out = []
+    for sp in spans:
+        if sp["type"] != "NAME" or not re.search(r"\n|\t| {3,}", sp["text"]):
+            out.append(sp)
+            continue
+        pos = sp["start"]
+        for part in re.split(r"(\n|\t| {3,})", text[sp["start"]:sp["end"]]):
+            if part.strip() and not re.fullmatch(r"\n|\t| {3,}", part) and not _all_stopwords(part):
+                q = dict(sp, start=pos, end=pos + len(part))
+                q["text"] = text[q["start"]:q["end"]]
+                out.append(q)
+            pos += len(part)
+    return out
+
+
 def detect(text: str, use_ner: bool = True, threshold: float = GLINER_THRESHOLD) -> list[dict]:
     """Detect PII spans in ``text``. Falls back to rules if GLiNER is unavailable."""
     if not text or not text.strip():
@@ -697,7 +778,7 @@ def detect(text: str, use_ner: bool = True, threshold: float = GLINER_THRESHOLD)
             continue
         kept.append(sp)
 
-    merged = merge_spans(kept, text)
+    merged = classify_addresses(merge_spans(_split_names(kept, text), text), text)
     result = []
     for i, sp in enumerate(m for m in (_tidy(s, text) for s in merged) if m):
         result.append({
