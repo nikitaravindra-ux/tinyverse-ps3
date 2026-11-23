@@ -255,8 +255,27 @@ def verify(data: bytes, fmt: str, checks: list[dict]) -> list[dict]:
 # ---------------------------------------------------------------------------
 # One-shot export
 # ---------------------------------------------------------------------------
+def removed_items(text: str, regions: list[dict]) -> list[dict]:
+    """[{value, type, entity_id}] for every removed region (deduplicated)."""
+    seen, out = set(), []
+    for r in regions:
+        v = text[r["start"]:r["end"]]
+        k = (v.lower(), r["type"])
+        if k not in seen:
+            seen.add(k)
+            out.append({"value": v, "type": r["type"], "entity_id": r.get("entity_id")})
+    return out
+
+
+def redacted_view(text: str, spans: list[dict], entities: list[dict], mode: str = "pseudonym") -> dict:
+    plan = plan_redaction(text, spans, entities)
+    return {"redacted_text": apply_redaction(text, plan["regions"], entities, mode),
+            "removed": removed_items(text, plan["regions"]), "plan": plan}
+
+
 def export(text: str, spans: list[dict], entities: list[dict], mode: str = "pseudonym",
-           fmt: str = "pdf", source_name: str = "document") -> dict:
+           fmt: str = "pdf", source_name: str = "document",
+           generalizations: Optional[list[dict]] = None) -> dict:
     if mode not in MODES:
         raise ValueError(f"mode must be one of {MODES}")
     if fmt not in FORMATS:
@@ -264,6 +283,10 @@ def export(text: str, spans: list[dict], entities: list[dict], mode: str = "pseu
     plan = plan_redaction(text, spans, entities)
     regions = plan["regions"]
     redacted = apply_redaction(text, regions, entities, mode)
+    if generalizations:
+        from app.audit import apply_generalizations
+
+        redacted = apply_generalizations(redacted, generalizations)
     data = build_pdf(redacted) if fmt == "pdf" else build_txt(redacted)
     sha = hashlib.sha256(data).hexdigest()
 
@@ -297,6 +320,7 @@ def export(text: str, spans: list[dict], entities: list[dict], mode: str = "pseu
         },
         "review": {"overridden_rejections": plan["overridden_rejections"],
                    "pending_left_unredacted": plan["pending_left"]},
+        "generalizations": len(generalizations or []),
     }
     if meta is not None:
         receipt["pdf_metadata"] = {"info_entries": len(meta["info"]), "xmp": meta["xmp"]}

@@ -85,6 +85,39 @@
       </div>
     </section>
 
+    <section class="summary-panel" id="summary-panel" aria-label="Summary" hidden>
+      <div class="sp-head">
+        <div>
+          <p class="eyebrow">Summary of the redacted document</p>
+          <div class="chips" id="sp-badges"></div>
+        </div>
+        <button class="pill btn small" type="button" id="sp-close">Hide</button>
+      </div>
+      <div class="sp-grid">
+        <div>
+          <p class="sp-note" id="sp-note" hidden></p>
+          <div class="sp-text" id="sp-text"></div>
+        </div>
+        <aside class="sp-side">
+          <p class="eyebrow">Quasi-identifier risk</p>
+          <div class="risk-meter" id="risk-meter" aria-hidden="true">
+            <span class="rm-seg"></span><span class="rm-seg"></span><span class="rm-seg"></span>
+          </div>
+          <div class="rm-labels" aria-hidden="true"><span>Low</span><span>Medium</span><span>High</span></div>
+          <p class="risk-label" id="risk-label"></p>
+          <div class="qi-list" id="sp-qi-list"></div>
+          <div class="doc-qi">
+            <button class="pill btn" type="button" id="doc-qi-btn">Check the redacted document</button>
+            <div class="qi-list" id="doc-qi-list"></div>
+            <div class="chips" id="doc-qi-export" hidden>
+              <button class="pill btn solid small" type="button" id="gen-pdf">Export generalised PDF</button>
+              <button class="pill btn small" type="button" id="gen-txt">TXT</button>
+            </div>
+          </div>
+        </aside>
+      </div>
+    </section>
+
     <nav class="chips type-filter" id="type-filter" aria-label="Filter by type"></nav>
 
     <div class="legend">

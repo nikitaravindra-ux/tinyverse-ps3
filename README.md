@@ -99,6 +99,8 @@ Other types are grouped by normalised value, so the same PAN twice, or
 | `POST /api/analyze` | multipart `file` (.txt / text PDF) or form `text` → `{text, spans, entities}`. Scanned/image-only PDFs get a 422 with a clear message |
 | `POST /api/link` | `{text, spans}` → re-clustered `{spans, entities}` (used after manual additions) |
 | `GET /api/samples`, `/api/samples/{name}` | list / analyse bundled samples |
+| `POST /api/summarize` | audited summary of the redacted text + QI report |
+| `POST /api/qi` | quasi-identifier report for any text |
 | `POST /api/export` | redacted TXT/PDF (base64) + Redaction Receipt |
 | `GET /api/status` | detector mode (hybrid vs rules-only) and Ollama / summary-model availability |
 
@@ -140,6 +142,39 @@ Role mailboxes such as `hr@` are listed as skipped rather than checked, because 
 - PDF metadata status and a UTC timestamp
 
 In the UI it is a printable card, with downloads for the file and the receipt JSON.
+
+## Summary, leak audit & quasi-identifiers (`app/summarize.py`, `app/audit.py`)
+
+`POST /api/summarize` recomputes the redaction from the reviewed spans on the server,
+so the removed values never come from the client. It then:
+
+1. **Guards the input.** It refuses to summarise if any removed value is still in the text (`RedactionGuardError`, a real exception, not a strippable `assert`). The summarizer only ever sees redacted text.
+2. **Summarises with Ollama.** It uses `SUMMARY_MODEL` (`llama3.2:3b`), with a prompt that copies placeholders verbatim and never guesses identities. If Ollama is down, it falls back to an **extractive summary** (top-scored sentences), and the UI labels it as such.
+3. **Leak-audits the summary.** It runs the full detector on the summary, plus fuzzy checks against the removed values:
+   - partial digits (4+)
+   - email usernames
+   - surname-only mentions
+   - initials (`R.S.`, `R. Sharma`, `Richa S.`)
+   - Levenshtein ≤ 2 on name tokens
+
+   Any hit triggers **one regeneration with a stricter prompt**. If that still leaks, the leaked text is **replaced with its placeholder and logged**; the log contains masked hints only.
+4. **Scores quasi-identifier (QI) risk** per sentence. The categories are role/title, location (city, neighbourhood, state, "X-based"), organisation (name, type, size), age/date of birth and rare attributes ("only female engineer", health details).
+   - **high:** role + city + firm
+   - **medium:** two categories
+   - Each scored sentence gets an explanation, e.g. "Role + city + organisation type could single out one person".
+   - **Generalise** applies the suggested rewrites (CFO → senior executive, Pune → a city in India, Pune-based → regionally based, birth dates → decade).
+   - The QI check runs on the summary and, on request, on the redacted document. Document-level generalisations are applied in the next export (`generalizations` on `/api/export`) and counted in the receipt.
+
+**Timing:** llama3.2:3b on an M-series MacBook Air, audited summary per sample.
+
+| Sample | Seconds |
+|---|---|
+| HR letter (cold start) | 9.5 |
+| KYC form | 5.8 |
+| Incident report | 5.0 |
+| Vendor contract | 6.9 |
+| Medical claim PDF | 4.4 |
+| **Average** | **6.3** |
 
 ## Review UI (`static/`)
 
@@ -191,7 +226,7 @@ generated to pass their checksums.
 ## Layout
 
 ```
-app/        main.py (API), config.py, detect.py, link.py, redact.py; summarize/audit/learn upcoming
+app/        main.py (API), config.py, detect.py, link.py, redact.py, summarize.py, audit.py; learn upcoming
 app/fonts/  DejaVu Sans for rebuilt PDFs (licence included)
 static/     index.html, styles.css, app.js, fonts/
 eval/       evaluation scripts (cache in eval/cache/, git-ignored)

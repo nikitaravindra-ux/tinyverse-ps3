@@ -15,7 +15,8 @@ from pydantic import BaseModel
 from app import detect as detector
 from app.config import OLLAMA_URL, SUMMARY_MODEL
 from app.link import link
-from app import redact
+from app import audit, redact
+from app import summarize as summarizer
 
 ROOT = Path(__file__).resolve().parent.parent
 STATIC = ROOT / "static"
@@ -39,6 +40,18 @@ class ExportRequest(BaseModel):
     mode: str = "pseudonym"    # pseudonym -> [PERSON_1]; mask -> [NAME]
     format: str = "pdf"        # pdf | txt
     allow_pending: bool = False
+    generalizations: list[dict] = []   # [{find, replace}] applied to the redacted text
+
+
+class SummaryRequest(BaseModel):
+    text: str
+    spans: list[dict]
+    entities: list[dict]
+    mode: str = "pseudonym"
+
+
+class QIRequest(BaseModel):
+    text: str
 
 
 class LinkRequest(BaseModel):
@@ -151,12 +164,34 @@ def export(req: ExportRequest) -> dict:
     if pending and not req.allow_pending:
         raise HTTPException(409, f"{pending} span(s) are still pending review. "
                                  "Review them or confirm 'redact anyway'.")
-    result = redact.export(req.text, req.spans, req.entities, req.mode, req.format)
+    result = redact.export(req.text, req.spans, req.entities, req.mode, req.format,
+                           generalizations=req.generalizations)
     return {
         "receipt": result["receipt"],
+        "redacted_text": result["redacted_text"],
         "file": {"name": result["receipt"]["file"]["name"], "mime": result["mime"],
                  "base64": base64.b64encode(result["data"]).decode("ascii")},
     }
+
+
+@app.post("/api/summarize")
+def summarize(req: SummaryRequest) -> dict:
+    """Summarise the redacted text only, audit the summary for leaks, score QI risk.
+
+    The redaction is recomputed here from the reviewed spans, so the removed values
+    used by the input guard and the auditor never depend on the client."""
+    if req.mode not in redact.MODES:
+        raise HTTPException(422, f"mode must be one of {list(redact.MODES)}")
+    view = redact.redacted_view(req.text, req.spans, req.entities, req.mode)
+    result = audit.audited_summary(view["redacted_text"], view["removed"], req.entities, req.mode,
+                                   summarizer=summarizer.summarize)
+    result["qi"] = audit.qi_report(result["summary"])
+    return result
+
+
+@app.post("/api/qi")
+def qi(req: QIRequest) -> dict:
+    return audit.qi_report(req.text)
 
 
 @app.get("/api/samples")

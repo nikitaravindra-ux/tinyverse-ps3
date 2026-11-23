@@ -33,7 +33,10 @@
     selection: null,    // {start, end, text}
     mode: "pseudonym",  // export replacement style
     allowPending: false,
-    lastExport: null,   // {receipt, file}
+    lastExport: null,   // {receipt, file, redacted_text}
+    generalizations: [],// [{find, replace}] applied to the redacted document on export
+    summary: null,      // {summary, method, audit, qi, ...}
+    summaryKey: null,
   };
 
   const key = (sp) => `${sp.start}:${sp.end}`;
@@ -124,7 +127,11 @@
     state.doc = doc;
     state.status = new Map();
     for (const sp of doc.spans) state.status.set(key(sp), old.get(key(sp)) || (sp.source === "manual" ? "approved" : "pending"));
-    if (!keepStatus) { state.filter = "ALL"; state.focus = -1; state.allowPending = false; }
+    if (!keepStatus) {
+      state.filter = "ALL"; state.focus = -1; state.allowPending = false;
+      state.generalizations = []; state.summary = null; state.summaryKey = null;
+      $("#summary-panel").hidden = true;
+    }
     $("#doc-file").textContent = doc.filename;
     $("#doc-title").textContent = prettyName(doc.filename);
     show("review");
@@ -290,12 +297,14 @@
       const res = await fetch("/api/export", {
         method: "POST", headers: { "Content-Type": "application/json" },
         body: JSON.stringify({ text: state.doc.text, spans, entities: state.doc.entities,
-          mode: state.mode, format: fmt, allow_pending: state.allowPending }),
+          mode: state.mode, format: fmt, allow_pending: state.allowPending,
+          generalizations: state.generalizations }),
       });
       const body = await res.json();
       if (!res.ok) throw new Error(body.detail || `Export failed (${res.status}).`);
       state.lastExport = body;
       renderReceipt(body.receipt);
+      startSummary(spans);
     } catch (err) {
       toast(err.message);
     }
@@ -322,6 +331,147 @@
       new Blob([JSON.stringify(r, null, 2)], { type: "application/json" }));
   }
 
+  // ---------------------------------------------------------------- summary + QI
+  const escapeHtml = (s) => s.replace(/[&<>"']/g, (c) => ({ "&": "&amp;", "<": "&lt;", ">": "&gt;", '"': "&quot;", "'": "&#39;" }[c]));
+  const withPlaceholders = (s) => escapeHtml(s).replace(/\[[A-Z]+(?:_[A-Z]+)*(?:_\d+)?\]/g, (m) => `<span class="ph">${m}</span>`);
+
+  async function startSummary(spans) {
+    const key = JSON.stringify([state.mode, spans.map((s) => [s.start, s.end, s.status])]);
+    const panel = $("#summary-panel");
+    panel.hidden = false;
+    if (state.summaryKey === key && state.summary) { renderSummary(); return; }
+    state.summaryKey = key;
+    $("#sp-badges").replaceChildren(el("span", { class: "pill pill-label dashed", text: "Summarising…" }));
+    $("#sp-note").hidden = true;
+    const t = $("#sp-text");
+    t.className = "sp-text loading";
+    t.textContent = "Summarising the redacted text only, then auditing the summary for leaks…";
+    $("#sp-qi-list").replaceChildren();
+    $("#risk-label").textContent = "";
+    try {
+      const res = await fetch("/api/summarize", {
+        method: "POST", headers: { "Content-Type": "application/json" },
+        body: JSON.stringify({ text: state.doc.text, spans, entities: state.doc.entities, mode: state.mode }),
+      });
+      const body = await res.json();
+      if (!res.ok) throw new Error(body.detail || `Summary failed (${res.status}).`);
+      state.summary = body;
+      renderSummary();
+    } catch (err) {
+      t.className = "sp-text";
+      t.textContent = err.message;
+      $("#sp-badges").replaceChildren(el("span", { class: "pill pill-label dashed", text: "No summary" }));
+    }
+  }
+
+  function renderSummary() {
+    const s = state.summary;
+    const a = s.audit;
+    const badges = [];
+    badges.push(s.method === "llm"
+      ? el("span", { class: "pill pill-label", text: `${s.model} · ${s.seconds.toFixed(1)} s` })
+      : el("span", { class: "pill pill-label dashed", text: `Extractive summary · ${s.fallback_reason}` }));
+    badges.push(el("span", { class: `pill pill-label ${a.passed ? "strong" : "dashed"}`,
+      text: a.passed ? `Leak audit: passed · ${a.checks} checks` : `Leak audit: ${a.remaining_hits.length} unresolved` }));
+    if (a.regenerated) badges.push(el("span", { class: "pill pill-label", text: "Regenerated once (strict prompt)" }));
+    if (a.replaced.length) badges.push(el("span", { class: "pill pill-label", text: `${a.replaced.length} leak${a.replaced.length > 1 ? "s" : ""} replaced with placeholders` }));
+    $("#sp-badges").replaceChildren(...badges);
+
+    const note = $("#sp-note");
+    note.hidden = s.method === "llm";
+    if (s.method !== "llm") note.textContent = `Extractive fallback: the top-scored sentences from the redacted text, shown because ${s.fallback_reason}.`;
+
+    // summary text with QI highlights
+    const text = s.summary;
+    const qi = s.qi;
+    let html = "", pos = 0;
+    for (const q of qi.sentences) {
+      html += withPlaceholders(text.slice(pos, q.start));
+      html += `<span class="qi ${q.level}" title="${escapeHtml(q.explanation)}">${withPlaceholders(text.slice(q.start, q.end))}</span>`;
+      pos = q.end;
+    }
+    html += withPlaceholders(text.slice(pos));
+    const t = $("#sp-text");
+    t.className = "sp-text";
+    t.innerHTML = html;
+
+    renderMeter(qi);
+    $("#sp-qi-list").replaceChildren(...qi.sentences.filter((q) => q.level !== "low").map((q) =>
+      qiItem(q, "Generalise", () => generaliseSummary(q))));
+  }
+
+  function renderMeter(qi) {
+    const n = { none: 0, low: 1, medium: 2, high: 3 }[qi.max_level];
+    document.querySelectorAll("#risk-meter .rm-seg").forEach((seg, i) => seg.classList.toggle("on", i < n));
+    const risky = qi.counts.high + qi.counts.medium;
+    $("#risk-label").replaceChildren(
+      qi.max_level === "none" ? "No quasi-identifiers found." :
+        el("span", {}, "Highest risk: ", el("b", { text: qi.max_level }),
+          ` · ${risky} risky of ${qi.total_sentences} sentence${qi.total_sentences === 1 ? "" : "s"}` +
+          (qi.counts.low ? ` · ${qi.counts.low} low` : "")));
+  }
+
+  function qiItem(q, label, onClick, done = false) {
+    const quote = el("q");
+    let pos = 0;
+    for (const t of q.terms) {
+      const s = t.start - q.start, e = t.end - q.start;
+      quote.append(q.text.slice(pos, s), el("span", { class: "term", title: t.label, text: q.text.slice(s, e) }));
+      pos = e;
+    }
+    quote.append(q.text.slice(pos));
+    const swaps = q.terms.filter((t) => t.replacement).map((t) => `${t.text} → ${t.replacement}`).join(", ");
+    return el("div", { class: `qi-item ${q.level}` },
+      el("span", { class: "pill pill-label strong", text: q.level }),
+      quote,
+      el("p", { class: "why", text: q.explanation }),
+      done ? el("p", { class: "done", text: `Generalised: ${swaps}` }) :
+        swaps ? el("button", { class: "pill btn small", type: "button", title: swaps, onclick: onClick }, label) : null);
+  }
+
+  async function generaliseSummary(q) {
+    const s = state.summary;
+    let text = s.summary;
+    for (const t of [...q.terms].sort((a, b) => b.start - a.start)) {
+      if (t.replacement) text = text.slice(0, t.start) + t.replacement + text.slice(t.end);
+    }
+    s.summary = text;
+    try {
+      s.qi = await (await fetch("/api/qi", { method: "POST", headers: { "Content-Type": "application/json" },
+        body: JSON.stringify({ text }) })).json();
+    } catch (_) { /* keep the old report */ }
+    renderSummary();
+    toast("Sentence generalised.");
+  }
+
+  async function checkDocumentQI() {
+    if (!state.lastExport) return;
+    const list = $("#doc-qi-list");
+    list.replaceChildren(el("p", { class: "risk-label", text: "Scanning the redacted document…" }));
+    const qi = await (await fetch("/api/qi", { method: "POST", headers: { "Content-Type": "application/json" },
+      body: JSON.stringify({ text: state.lastExport.redacted_text }) })).json();
+    const risky = qi.sentences.filter((q) => q.level !== "low");
+    const applied = new Set(state.generalizations.map((g) => g.find));
+    list.replaceChildren(
+      el("p", { class: "risk-label", text: risky.length
+        ? `${risky.length} risky sentence${risky.length > 1 ? "s" : ""} in the redacted document (highest: ${qi.max_level}).`
+        : "No medium or high risk sentences in the redacted document." }),
+      ...risky.map((q) => {
+        const terms = q.terms.filter((t) => t.replacement);
+        const done = terms.length > 0 && terms.every((t) => applied.has(t.text));
+        const item = qiItem(q, "Generalise in export", () => {
+          for (const t of terms) {
+            if (!state.generalizations.some((g) => g.find === t.text)) state.generalizations.push({ find: t.text, replace: t.replacement });
+          }
+          item.replaceWith(qiItem(q, "", null, true));
+          $("#doc-qi-export").hidden = false;
+          toast(`${state.generalizations.length} term${state.generalizations.length > 1 ? "s" : ""} will be generalised in the next export.`);
+        }, done);
+        return item;
+      }));
+    $("#doc-qi-export").hidden = state.generalizations.length === 0;
+  }
+
   function renderReceipt(r) {
     const v = r.verification;
     const row = (k, ...val) => [el("dt", { text: k }), el("dd", {}, ...val)];
@@ -333,6 +483,7 @@
       ...row("Style", `${r.format.toUpperCase()} · ${r.mode === "mask" ? "mask [NAME]" : "pseudonym [PERSON_1]"}`),
       ...row("Removed", `${r.removed.total} item${r.removed.total === 1 ? "" : "s"} across ${r.removed.entities} entit${r.removed.entities === 1 ? "y" : "ies"}`),
       ...row("By type", el("div", { class: "types" }, ...types)),
+      ...(r.generalizations ? row("Generalised", `${r.generalizations} quasi-identifier term${r.generalizations > 1 ? "s" : ""}`) : []),
       ...row("Checks", `${v.checks} performed · ${v.recoverable} recoverable` + (v.skipped.length ? ` · ${v.skipped.length} skipped` : "")),
     ];
     if (r.pdf_metadata) rows.push(...row("Metadata", r.pdf_metadata.info_entries === 0 && !r.pdf_metadata.xmp ? "None: no author, title or producer; no XMP" : `${r.pdf_metadata.info_entries} entries · XMP ${r.pdf_metadata.xmp ? "present" : "absent"}`));
@@ -583,6 +734,10 @@
       renderExport();
     });
     $("#receipt").addEventListener("click", (e) => { if (e.target.id === "receipt") $("#receipt").hidden = true; });
+    $("#sp-close").addEventListener("click", () => { $("#summary-panel").hidden = true; });
+    $("#doc-qi-btn").addEventListener("click", checkDocumentQI);
+    $("#gen-pdf").addEventListener("click", () => exportDoc("pdf"));
+    $("#gen-txt").addEventListener("click", () => exportDoc("txt"));
   }
 
   wire();
