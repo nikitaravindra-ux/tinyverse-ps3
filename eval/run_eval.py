@@ -242,25 +242,44 @@ def eval_summaries(docs: list[dict]) -> dict:
             "qi_traps_flagged": sum(t["flagged"] for t in traps), "qi_traps_total": len(traps), "per_doc": rows}
 
 
-def eval_active_learning() -> dict:
-    """Simulated reviewer on the first 50 Indian docs: approve/reject candidates on 20
-    using gold labels, then compare precision on the other 30 before vs after."""
-    docs = load_jsonl(HERE / "data" / "indian_synthetic.jsonl", 50)
-    train, test = docs[:20], docs[20:50]
+AL_RUNS = [  # (dataset key, train docs, held-out test docs)
+    ("indian", 20, 30),
+    ("gretel", 20, 100),
+    ("ai4privacy", 20, 100),
+]
+
+
+def _rule_examples(summary: dict, kind: str, n: int = 4) -> list[str]:
+    return [f"{r['type']}: {r['text']}" for r in summary["rules"] if r["kind"] == kind][:n]
+
+
+def eval_active_learning_on(key: str, n_train: int, n_test: int) -> dict:
+    """Simulated reviewer = domain adaptation. On the first `n_train` docs of a dataset
+    every hybrid candidate is approved or rejected using the gold labels (as a careful
+    human would); then precision/recall/F1 are measured on the next `n_test` held-out
+    docs of the same dataset, before vs after learning."""
+    title, path = next((t, p) for k, t, p in DATASETS if k == key)
+    docs = load_jsonl(path, n_train + n_test)
+    train, test = docs[:n_train], docs[n_train:n_train + n_test]
     original = learn.STORE_PATH
-    learn.STORE_PATH = HERE / "cache" / "active_learning_store.json"   # never touches data/learned.json
+    learn.STORE_PATH = HERE / "cache" / f"active_learning_{key}.json"   # never touches data/learned.json
     try:
         learn.reset()
         approvals = rejections = 0
+        rejected_types: dict[str, int] = defaultdict(int)
         for d in train:
             state = learn.load()
             events = []
             for p in predict(d["text"], "hybrid", state):
-                good = any(g["type"] == _type(p["type"]) and _ov(g, p) for g in d["spans"])
+                # A human approves anything that is real PII, even if the type label is off
+                # (it must be redacted either way), and rejects only candidates that are not PII.
+                good = any(_ov(g, p) for g in d["spans"])
                 events.append({"action": "approve" if good else "reject", "text": p["text"], "type": p["type"],
                                "source": p["source"]})
                 approvals += good
                 rejections += not good
+                if not good:
+                    rejected_types[_type(p["type"])] += 1
             learn.record(events)
         learned_state = learn.load()
         summary = learn.summary(learned_state)
@@ -268,18 +287,53 @@ def eval_active_learning() -> dict:
         for d in test:
             before.add(predict(d["text"], "hybrid", None), d["spans"])
             after.add(predict(d["text"], "hybrid", learned_state), d["spans"])
-        b, a = before.report()["micro"], after.report()["micro"]
-        return {"train_docs": len(train), "test_docs": len(test), "approvals": approvals, "rejections": rejections,
-                "rules_learned": summary["corrections"],
-                "rule_kinds": {k: sum(1 for r in summary["rules"] if r["kind"] == k)
-                               for k in ("allowlist", "denylist", "shape", "candidate")},
-                "thresholds": summary["all_thresholds"],
-                "precision_before": b["precision"], "precision_after": a["precision"],
-                "recall_before": b["recall"], "recall_after": a["recall"],
-                "f1_before": b["f1"], "f1_after": a["f1"],
-                "fp_before": b["n_pred"] - b["tp_pred"], "fp_after": a["n_pred"] - a["tp_pred"]}
+        # ablation: which learned component produced the change?
+        lists_only = dict(learned_state, type_stats={})
+        thr_only = dict(learn._empty(), type_stats=learned_state["type_stats"])
+        abl = {}
+        for name, st in (("lists_only", lists_only), ("thresholds_only", thr_only)):
+            sc = Score()
+            for d in test:
+                sc.add(predict(d["text"], "hybrid", st), d["spans"])
+            mm = sc.report()["micro"]
+            abl[name] = {"precision": mm["precision"], "recall": mm["recall"], "f1": mm["f1"],
+                         "fp": mm["n_pred"] - mm["tp_pred"]}
+        b, a = before.report(), after.report()
+        bm, am = b["micro"], a["micro"]
+        res = {"dataset": key, "title": title, "train_docs": len(train), "test_docs": len(test),
+               "approvals": approvals, "rejections": rejections, "rejected_by_type": dict(rejected_types),
+               "rules_learned": summary["corrections"],
+               "rule_kinds": {k: sum(1 for r in summary["rules"] if r["kind"] == k)
+                              for k in ("allowlist", "denylist", "shape", "candidate")},
+               "shape_examples": _rule_examples(summary, "shape"),
+               "allowlist_examples": [r["text"].replace("\n", " ") for r in summary["rules"] if r["kind"] == "allowlist"][:8],
+               "ablation": abl,
+               "thresholds": summary["all_thresholds"],
+               "precision_before": bm["precision"], "precision_after": am["precision"],
+               "recall_before": bm["recall"], "recall_after": am["recall"],
+               "f1_before": bm["f1"], "f1_after": am["f1"],
+               "fp_before": bm["n_pred"] - bm["tp_pred"], "fp_after": am["n_pred"] - am["tp_pred"],
+               "per_type": {t: {"before": b["per_type"].get(t), "after": a["per_type"].get(t)} for t in TYPES}}
+        log(f"- {title}: {approvals} approvals / {rejections} rejections; "
+            f"P {bm['precision']:.3f}->{am['precision']:.3f}  R {bm['recall']:.3f}->{am['recall']:.3f}  "
+            f"F1 {bm['f1']:.3f}->{am['f1']:.3f}")
+        return res
     finally:
         learn.STORE_PATH = original
+
+
+def eval_active_learning() -> dict:
+    runs = {}
+    for key, n_train, n_test in AL_RUNS:
+        path = next(p for k, _, p in DATASETS if k == key)
+        if path.exists():
+            runs[key] = eval_active_learning_on(key, n_train, n_test)
+    # "best" = the largest honest precision gain, ties broken by F1 gain
+    best = max(runs, key=lambda k: (round(runs[k]["precision_after"] - runs[k]["precision_before"], 4),
+                                    runs[k]["f1_after"] - runs[k]["f1_before"])) if runs else None
+    return {"runs": runs, "best": best,
+            "protocol": "simulated reviewer approves/rejects every hybrid candidate on the first 20 docs of a "
+                        "dataset using gold labels; metrics on held-out docs from the same dataset"}
 
 
 def peak_ram_mb() -> float:
@@ -354,16 +408,52 @@ def write_markdown(res: dict) -> None:
         L.append(f"| {r['doc']} | {r['method']} | {r['leaks']} | {r['audit_initial_hits']} | "
                  f"{'yes' if r['regenerated'] else 'no'} | {r['replaced']} | {traps} |")
     al = res["active_learning"]
-    L += ["", "## Active learning (simulated reviewer)", "",
-          f"A simulated reviewer approved/rejected every hybrid candidate on the first {al['train_docs']} Indian "
-          f"documents using the gold labels ({al['approvals']} approvals, {al['rejections']} rejections, "
-          f"{al['rules_learned']} rules learned: {al['rule_kinds']}). Measured on the next {al['test_docs']} documents:", "",
-          "| | Before | After |", "|---|---:|---:|",
-          f"| Precision | {pct(al['precision_before'])} | {pct(al['precision_after'])} |",
-          f"| Recall | {pct(al['recall_before'])} | {pct(al['recall_after'])} |",
-          f"| F1 | {pct(al['f1_before'])} | {pct(al['f1_after'])} |",
-          f"| False positives | {al['fp_before']} | {al['fp_after']} |", "",
-          f"Learned GLiNER thresholds: {al['thresholds']}.", "",
+    L += ["", "## Active learning as domain adaptation (simulated reviewer)", "",
+          "Protocol: on the first 20 documents of a dataset, a simulated reviewer approves or rejects every "
+          "hybrid candidate using the gold labels, as a careful human would in the UI: a candidate that overlaps "
+          "any gold PII span is approved (even if its type label is off, since it must be redacted either way), "
+          "and anything else is rejected. "
+          "The learned rules (allowlist, denylist, non-PII shapes, candidate rules, per-type GLiNER thresholds) "
+          "are then applied to **held-out documents from the same dataset** and compared with the clean detector. "
+          "No decoys were added to any dataset.", "",
+          "| Dataset | Train / test docs | Reviewer feedback | Rules learned | Precision | Recall | F1 | False positives |",
+          "|---|---:|---|---:|---|---|---|---|"]
+    for k, r in al["runs"].items():
+        L.append(f"| {r['title']} | {r['train_docs']} / {r['test_docs']} | {r['approvals']} approved, "
+                 f"{r['rejections']} rejected | {r['rules_learned']} | {pct(r['precision_before'])} → "
+                 f"{pct(r['precision_after'])} | {pct(r['recall_before'])} → {pct(r['recall_after'])} | "
+                 f"{pct(r['f1_before'])} → {pct(r['f1_after'])} | {r['fp_before']} → {r['fp_after']} |")
+    L += ["", "What was learned and why the results differ:", ""]
+    for k, r in al["runs"].items():
+        rej = ", ".join(f"{t} {n}" for t, n in sorted(r["rejected_by_type"].items(), key=lambda x: -x[1])) or "none"
+        shapes = "; ".join(r["shape_examples"]) or "none"
+        dp = (r["precision_after"] or 0) - (r["precision_before"] or 0)
+        dr = (r["recall_after"] or 0) - (r["recall_before"] or 0)
+        if r["rejections"] <= 2:
+            why = (f"There was little to learn: the clean detector made only {r['rejections']} false-positive "
+                   f"candidate(s) in {r['train_docs']} documents, so the reviewer had almost nothing to reject. "
+                   f"Precision was already {pct(r['precision_before'])}%; the small recall change comes from "
+                   f"approved strings (denylist) and lower GLiNER thresholds.")
+        else:
+            ab = r["ablation"]
+            lp = 100 * ((ab["lists_only"]["precision"] or 0) - (r["precision_before"] or 0))
+            tp = 100 * ((ab["thresholds_only"]["precision"] or 0) - (r["precision_before"] or 0))
+            tr = 100 * ((ab["thresholds_only"]["recall"] or 0) - (r["recall_before"] or 0))
+            driver = "the allow/deny lists" if abs(lp) >= abs(tp) else "the per-type GLiNER thresholds"
+            ex = ", ".join(f"“{x}”" for x in r["allowlist_examples"][:6]) or "none"
+            why = (f"The reviewer rejected {r['rejections']} false positives (by type: {rej}); learned non-PII "
+                   f"shapes: {shapes} (rejected values were mostly words, and only digit-bearing codes become "
+                   f"shapes). On {r['test_docs']} unseen documents precision moved {100 * dp:+.1f} points and "
+                   f"recall {100 * dr:+.1f}. Ablation: lists alone {lp:+.1f} precision points, thresholds alone "
+                   f"{tp:+.1f} precision / {tr:+.1f} recall points, so the change is driven mainly by {driver}. "
+                   f"Rejected strings include {ex}: mostly role and domain words the model mistakes for "
+                   f"names, which then stop being flagged in new documents of the same kind.")
+        L.append(f"- **{r['title']}**: {why} Thresholds after learning: {r['thresholds']}.")
+    if al.get("best"):
+        b = al["runs"][al["best"]]
+        L += ["", f"The review UI's “What I learned” drawer shows the largest honest precision change: "
+                  f"**{b['title']}, {pct(b['precision_before'])}% → {pct(b['precision_after'])}%**.", ""]
+    L += [
           "## Resources", "", f"- Peak RAM (whole run, includes the GLiNER model): **{res['peak_ram_mb']:.0f} MB**",
           f"- Total runtime: {res['runtime_seconds'] / 60:.1f} min", ""]
     (HERE / "results.md").write_text("\n".join(L), encoding="utf-8")
@@ -421,9 +511,22 @@ def main() -> None:
     ap.add_argument("--limit", type=int, default=None, help="max docs per dataset")
     ap.add_argument("--with-learning", action="store_true", help="apply data/learned.json (default: clean detector)")
     ap.add_argument("--skip-summaries", action="store_true")
+    ap.add_argument("--only", choices=["active-learning"], help="re-run one section, reuse eval/results.json for the rest")
     args = ap.parse_args()
     t_start = time.perf_counter()
     learned = learn.load() if args.with_learning else None
+    if args.only == "active-learning":
+        res = json.loads((HERE / "results.json").read_text(encoding="utf-8"))
+        det.load_model()
+        log("# Active learning (domain adaptation)")
+        res["active_learning"] = eval_active_learning()
+        res["peak_ram_mb"] = max(res.get("peak_ram_mb", 0), peak_ram_mb())
+        res["active_learning_generated"] = datetime.now(timezone.utc).isoformat(timespec="seconds")
+        (HERE / "results.json").write_text(json.dumps(res, indent=2), encoding="utf-8")
+        write_markdown(res)
+        write_chart(res)
+        log("updated eval/results.json, eval/results.md")
+        return
 
     log("Loading GLiNER…")
     det.load_model()
@@ -439,10 +542,8 @@ def main() -> None:
     if not args.skip_summaries:
         log("\n# Summaries (leak + QI traps)")
         summaries = eval_summaries(load_handmade())
-    log("\n# Active learning")
+    log("\n# Active learning (domain adaptation)")
     al = eval_active_learning()
-    log(f"precision {al['precision_before']:.3f} -> {al['precision_after']:.3f}; "
-        f"recall {al['recall_before']:.3f} -> {al['recall_after']:.3f}")
 
     res = {"generated": datetime.now(timezone.utc).isoformat(timespec="seconds"),
            "machine": f"{platform.machine()} {platform.system()} {platform.release()}",

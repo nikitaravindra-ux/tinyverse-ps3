@@ -1094,33 +1094,488 @@
     ]
   },
   "active_learning": {
-    "train_docs": 20,
-    "test_docs": 30,
-    "approvals": 151,
-    "rejections": 1,
-    "rules_learned": 149,
-    "rule_kinds": {
-      "allowlist": 1,
-      "denylist": 148,
-      "shape": 0,
-      "candidate": 0
+    "runs": {
+      "indian": {
+        "dataset": "indian",
+        "title": "Indian synthetic (Faker en_IN)",
+        "train_docs": 20,
+        "test_docs": 30,
+        "approvals": 151,
+        "rejections": 1,
+        "rejected_by_type": {
+          "NAME": 1
+        },
+        "rules_learned": 149,
+        "rule_kinds": {
+          "allowlist": 1,
+          "denylist": 148,
+          "shape": 0,
+          "candidate": 0
+        },
+        "shape_examples": [],
+        "allowlist_examples": [
+          "WALI, MITTER AND OM"
+        ],
+        "ablation": {
+          "lists_only": {
+            "precision": 0.9957081545064378,
+            "recall": 0.9169960474308301,
+            "f1": 0.9547325102880658,
+            "fp": 1
+          },
+          "thresholds_only": {
+            "precision": 0.9957446808510638,
+            "recall": 0.924901185770751,
+            "f1": 0.9590163934426229,
+            "fp": 1
+          }
+        },
+        "thresholds": {
+          "ADDRESS": 0.253,
+          "EMAIL": 0.253,
+          "ID": 0.45,
+          "NAME": 0.25,
+          "PHONE": 0.25
+        },
+        "precision_before": 0.9957081545064378,
+        "precision_after": 0.9957446808510638,
+        "recall_before": 0.9169960474308301,
+        "recall_after": 0.924901185770751,
+        "f1_before": 0.9547325102880658,
+        "f1_after": 0.9590163934426229,
+        "fp_before": 1,
+        "fp_after": 1,
+        "per_type": {
+          "NAME": {
+            "before": {
+              "precision": 0.9873417721518988,
+              "recall": 0.7878787878787878,
+              "f1": 0.8764044943820224,
+              "tp_pred": 78,
+              "n_pred": 79,
+              "tp_gold": 78,
+              "n_gold": 99
+            },
+            "after": {
+              "precision": 0.9876543209876543,
+              "recall": 0.8080808080808081,
+              "f1": 0.888888888888889,
+              "tp_pred": 80,
+              "n_pred": 81,
+              "tp_gold": 80,
+              "n_gold": 99
+            }
+          },
+          "EMAIL": {
+            "before": {
+              "precision": 1.0,
+              "recall": 1.0,
+              "f1": 1.0,
+              "tp_pred": 23,
+              "n_pred": 23,
+              "tp_gold": 23,
+              "n_gold": 23
+            },
+            "after": {
+              "precision": 1.0,
+              "recall": 1.0,
+              "f1": 1.0,
+              "tp_pred": 23,
+              "n_pred": 23,
+              "tp_gold": 23,
+              "n_gold": 23
+            }
+          },
+          "PHONE": {
+            "before": {
+              "precision": 1.0,
+              "recall": 1.0,
+              "f1": 1.0,
+              "tp_pred": 30,
+              "n_pred": 30,
+              "tp_gold": 30,
+              "n_gold": 30
+            },
+            "after": {
+              "precision": 1.0,
+              "recall": 1.0,
+              "f1": 1.0,
+              "tp_pred": 30,
+              "n_pred": 30,
+              "tp_gold": 30,
+              "n_gold": 30
+            }
+          },
+          "ADDRESS": {
+            "before": {
+              "precision": 1.0,
+              "recall": 1.0,
+              "f1": 1.0,
+              "tp_pred": 23,
+              "n_pred": 23,
+              "tp_gold": 23,
+              "n_gold": 23
+            },
+            "after": {
+              "precision": 1.0,
+              "recall": 1.0,
+              "f1": 1.0,
+              "tp_pred": 23,
+              "n_pred": 23,
+              "tp_gold": 23,
+              "n_gold": 23
+            }
+          },
+          "ID": {
+            "before": {
+              "precision": 1.0,
+              "recall": 1.0,
+              "f1": 1.0,
+              "tp_pred": 78,
+              "n_pred": 78,
+              "tp_gold": 78,
+              "n_gold": 78
+            },
+            "after": {
+              "precision": 1.0,
+              "recall": 1.0,
+              "f1": 1.0,
+              "tp_pred": 78,
+              "n_pred": 78,
+              "tp_gold": 78,
+              "n_gold": 78
+            }
+          }
+        }
+      },
+      "gretel": {
+        "dataset": "gretel",
+        "title": "Gretel synthetic PII finance",
+        "train_docs": 20,
+        "test_docs": 100,
+        "approvals": 49,
+        "rejections": 34,
+        "rejected_by_type": {
+          "NAME": 28,
+          "ADDRESS": 5,
+          "ID": 1
+        },
+        "rules_learned": 56,
+        "rule_kinds": {
+          "allowlist": 17,
+          "denylist": 39,
+          "shape": 0,
+          "candidate": 0
+        },
+        "shape_examples": [],
+        "allowlist_examples": [
+          "High Street Bank",
+          "Lender",
+          "Borrower",
+          "Davenport-Terry",
+          "West Tammybury, 11988 UK",
+          "Policyholder",
+          "123456789",
+          "API Key Holder"
+        ],
+        "ablation": {
+          "lists_only": {
+            "precision": 0.6764705882352942,
+            "recall": 0.8598130841121495,
+            "f1": 0.7572016460905351,
+            "fp": 132
+          },
+          "thresholds_only": {
+            "precision": 0.6258503401360545,
+            "recall": 0.8598130841121495,
+            "f1": 0.7244094488188977,
+            "fp": 165
+          }
+        },
+        "thresholds": {
+          "ADDRESS": 0.358,
+          "EMAIL": 0.343,
+          "ID": 0.45,
+          "NAME": 0.45,
+          "PHONE": 0.311
+        },
+        "precision_before": 0.6359447004608295,
+        "precision_after": 0.6666666666666666,
+        "recall_before": 0.8598130841121495,
+        "recall_after": 0.8598130841121495,
+        "f1_before": 0.7311258278145695,
+        "f1_after": 0.7510204081632653,
+        "fp_before": 158,
+        "fp_after": 138,
+        "per_type": {
+          "NAME": {
+            "before": {
+              "precision": 0.5263157894736842,
+              "recall": 0.8333333333333334,
+              "f1": 0.6451612903225806,
+              "tp_pred": 140,
+              "n_pred": 266,
+              "tp_gold": 140,
+              "n_gold": 168
+            },
+            "after": {
+              "precision": 0.5714285714285714,
+              "recall": 0.8333333333333334,
+              "f1": 0.6779661016949152,
+              "tp_pred": 140,
+              "n_pred": 245,
+              "tp_gold": 140,
+              "n_gold": 168
+            }
+          },
+          "EMAIL": {
+            "before": {
+              "precision": 0.9354838709677419,
+              "recall": 1.0,
+              "f1": 0.9666666666666666,
+              "tp_pred": 29,
+              "n_pred": 31,
+              "tp_gold": 29,
+              "n_gold": 29
+            },
+            "after": {
+              "precision": 0.9354838709677419,
+              "recall": 1.0,
+              "f1": 0.9666666666666666,
+              "tp_pred": 29,
+              "n_pred": 31,
+              "tp_gold": 29,
+              "n_gold": 29
+            }
+          },
+          "PHONE": {
+            "before": {
+              "precision": 0.8333333333333334,
+              "recall": 0.8823529411764706,
+              "f1": 0.8571428571428571,
+              "tp_pred": 15,
+              "n_pred": 18,
+              "tp_gold": 15,
+              "n_gold": 17
+            },
+            "after": {
+              "precision": 0.7142857142857143,
+              "recall": 0.8823529411764706,
+              "f1": 0.7894736842105262,
+              "tp_pred": 15,
+              "n_pred": 21,
+              "tp_gold": 15,
+              "n_gold": 17
+            }
+          },
+          "ADDRESS": {
+            "before": {
+              "precision": 0.7777777777777778,
+              "recall": 0.9767441860465116,
+              "f1": 0.8659793814432991,
+              "tp_pred": 84,
+              "n_pred": 108,
+              "tp_gold": 84,
+              "n_gold": 86
+            },
+            "after": {
+              "precision": 0.7777777777777778,
+              "recall": 0.9767441860465116,
+              "f1": 0.8659793814432991,
+              "tp_pred": 84,
+              "n_pred": 108,
+              "tp_gold": 84,
+              "n_gold": 86
+            }
+          },
+          "ID": {
+            "before": {
+              "precision": 0.7272727272727273,
+              "recall": 0.38095238095238093,
+              "f1": 0.5,
+              "tp_pred": 8,
+              "n_pred": 11,
+              "tp_gold": 8,
+              "n_gold": 21
+            },
+            "after": {
+              "precision": 0.8888888888888888,
+              "recall": 0.38095238095238093,
+              "f1": 0.5333333333333333,
+              "tp_pred": 8,
+              "n_pred": 9,
+              "tp_gold": 8,
+              "n_gold": 21
+            }
+          }
+        }
+      },
+      "ai4privacy": {
+        "dataset": "ai4privacy",
+        "title": "ai4privacy pii-masking-300k",
+        "train_docs": 20,
+        "test_docs": 100,
+        "approvals": 17,
+        "rejections": 11,
+        "rejected_by_type": {
+          "NAME": 10,
+          "ADDRESS": 1
+        },
+        "rules_learned": 26,
+        "rule_kinds": {
+          "allowlist": 9,
+          "denylist": 17,
+          "shape": 0,
+          "candidate": 0
+        },
+        "shape_examples": [],
+        "allowlist_examples": [
+          "Campus Safety Officer",
+          "Platform owner",
+          "Users",
+          "Counselor",
+          "Client",
+          "Team",
+          "Kingswinford",
+          "Player A"
+        ],
+        "ablation": {
+          "lists_only": {
+            "precision": 0.7300884955752213,
+            "recall": 0.5442622950819672,
+            "f1": 0.6236267802051434,
+            "fp": 61
+          },
+          "thresholds_only": {
+            "precision": 0.7239819004524887,
+            "recall": 0.5245901639344263,
+            "f1": 0.6083650190114068,
+            "fp": 61
+          }
+        },
+        "thresholds": {
+          "ADDRESS": 0.5,
+          "EMAIL": 0.291,
+          "ID": 0.311,
+          "NAME": 0.553,
+          "PHONE": 0.4
+        },
+        "precision_before": 0.717391304347826,
+        "precision_after": 0.7373271889400922,
+        "recall_before": 0.5442622950819672,
+        "recall_after": 0.5245901639344263,
+        "f1_before": 0.6189480820292639,
+        "f1_after": 0.6130268199233717,
+        "fp_before": 65,
+        "fp_after": 57,
+        "per_type": {
+          "NAME": {
+            "before": {
+              "precision": 0.48936170212765956,
+              "recall": 0.6764705882352942,
+              "f1": 0.5679012345679013,
+              "tp_pred": 46,
+              "n_pred": 94,
+              "tp_gold": 46,
+              "n_gold": 68
+            },
+            "after": {
+              "precision": 0.5294117647058824,
+              "recall": 0.6617647058823529,
+              "f1": 0.5882352941176471,
+              "tp_pred": 45,
+              "n_pred": 85,
+              "tp_gold": 45,
+              "n_gold": 68
+            }
+          },
+          "EMAIL": {
+            "before": {
+              "precision": 0.972972972972973,
+              "recall": 1.0,
+              "f1": 0.9863013698630138,
+              "tp_pred": 36,
+              "n_pred": 37,
+              "tp_gold": 36,
+              "n_gold": 36
+            },
+            "after": {
+              "precision": 0.972972972972973,
+              "recall": 1.0,
+              "f1": 0.9863013698630138,
+              "tp_pred": 36,
+              "n_pred": 37,
+              "tp_gold": 36,
+              "n_gold": 36
+            }
+          },
+          "PHONE": {
+            "before": {
+              "precision": 0.7142857142857143,
+              "recall": 0.6896551724137931,
+              "f1": 0.7017543859649122,
+              "tp_pred": 20,
+              "n_pred": 28,
+              "tp_gold": 20,
+              "n_gold": 29
+            },
+            "after": {
+              "precision": 0.7142857142857143,
+              "recall": 0.6896551724137931,
+              "f1": 0.7017543859649122,
+              "tp_pred": 20,
+              "n_pred": 28,
+              "tp_gold": 20,
+              "n_gold": 29
+            }
+          },
+          "ADDRESS": {
+            "before": {
+              "precision": 0.9428571428571428,
+              "recall": 0.5074626865671642,
+              "f1": 0.6598059394295797,
+              "tp_pred": 33,
+              "n_pred": 35,
+              "tp_gold": 34,
+              "n_gold": 67
+            },
+            "after": {
+              "precision": 0.9354838709677419,
+              "recall": 0.43283582089552236,
+              "f1": 0.5918367346938774,
+              "tp_pred": 29,
+              "n_pred": 31,
+              "tp_gold": 29,
+              "n_gold": 67
+            }
+          },
+          "ID": {
+            "before": {
+              "precision": 0.8333333333333334,
+              "recall": 0.2857142857142857,
+              "f1": 0.42553191489361697,
+              "tp_pred": 30,
+              "n_pred": 36,
+              "tp_gold": 30,
+              "n_gold": 105
+            },
+            "after": {
+              "precision": 0.8333333333333334,
+              "recall": 0.2857142857142857,
+              "f1": 0.42553191489361697,
+              "tp_pred": 30,
+              "n_pred": 36,
+              "tp_gold": 30,
+              "n_gold": 105
+            }
+          }
+        }
+      }
     },
-    "thresholds": {
-      "ADDRESS": 0.253,
-      "EMAIL": 0.253,
-      "ID": 0.45,
-      "NAME": 0.25,
-      "PHONE": 0.25
-    },
-    "precision_before": 0.9957081545064378,
-    "precision_after": 0.9957446808510638,
-    "recall_before": 0.9169960474308301,
-    "recall_after": 0.924901185770751,
-    "f1_before": 0.9547325102880658,
-    "f1_after": 0.9590163934426229,
-    "fp_before": 1,
-    "fp_after": 1
+    "best": "gretel",
+    "protocol": "simulated reviewer approves/rejects every hybrid candidate on the first 20 docs of a dataset using gold labels; metrics on held-out docs from the same dataset"
   },
-  "peak_ram_mb": 1685.6875,
-  "runtime_seconds": 1003.2919739577919
+  "peak_ram_mb": 2208.703125,
+  "runtime_seconds": 1003.2919739577919,
+  "active_learning_generated": "2026-11-23T16:36:15+00:00"
 }

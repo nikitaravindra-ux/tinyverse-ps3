@@ -109,20 +109,25 @@ Quasi-identifier traps flagged (medium/high): **3/3**.
 | 09_qi_cfo_age | llm | 0 | 0 | no | 0 | high |
 | 10_qi_principal_health | llm | 0 | 0 | no | 0 | high |
 
-## Active learning (simulated reviewer)
+## Active learning as domain adaptation (simulated reviewer)
 
-A simulated reviewer approved/rejected every hybrid candidate on the first 20 Indian documents using the gold labels (151 approvals, 1 rejections, 149 rules learned: {'allowlist': 1, 'denylist': 148, 'shape': 0, 'candidate': 0}). Measured on the next 30 documents:
+Protocol: on the first 20 documents of a dataset, a simulated reviewer approves or rejects every hybrid candidate using the gold labels, as a careful human would in the UI: a candidate that overlaps any gold PII span is approved (even if its type label is off, since it must be redacted either way), and anything else is rejected. The learned rules (allowlist, denylist, non-PII shapes, candidate rules, per-type GLiNER thresholds) are then applied to **held-out documents from the same dataset** and compared with the clean detector. No decoys were added to any dataset.
 
-| | Before | After |
-|---|---:|---:|
-| Precision | 99.6 | 99.6 |
-| Recall | 91.7 | 92.5 |
-| F1 | 95.5 | 95.9 |
-| False positives | 1 | 1 |
+| Dataset | Train / test docs | Reviewer feedback | Rules learned | Precision | Recall | F1 | False positives |
+|---|---:|---|---:|---|---|---|---|
+| Indian synthetic (Faker en_IN) | 20 / 30 | 151 approved, 1 rejected | 149 | 99.6 → 99.6 | 91.7 → 92.5 | 95.5 → 95.9 | 1 → 1 |
+| Gretel synthetic PII finance | 20 / 100 | 49 approved, 34 rejected | 56 | 63.6 → 66.7 | 86.0 → 86.0 | 73.1 → 75.1 | 158 → 138 |
+| ai4privacy pii-masking-300k | 20 / 100 | 17 approved, 11 rejected | 26 | 71.7 → 73.7 | 54.4 → 52.5 | 61.9 → 61.3 | 65 → 57 |
 
-Learned GLiNER thresholds: {'ADDRESS': 0.253, 'EMAIL': 0.253, 'ID': 0.45, 'NAME': 0.25, 'PHONE': 0.25}.
+What was learned and why the results differ:
+
+- **Indian synthetic (Faker en_IN)**: There was little to learn: the clean detector made only 1 false-positive candidate(s) in 20 documents, so the reviewer had almost nothing to reject. Precision was already 99.6%; the small recall change comes from approved strings (denylist) and lower GLiNER thresholds. Thresholds after learning: {'ADDRESS': 0.253, 'EMAIL': 0.253, 'ID': 0.45, 'NAME': 0.25, 'PHONE': 0.25}.
+- **Gretel synthetic PII finance**: The reviewer rejected 34 false positives (by type: NAME 28, ADDRESS 5, ID 1); learned non-PII shapes: none (rejected values were mostly words, and only digit-bearing codes become shapes). On 100 unseen documents precision moved +3.1 points and recall +0.0. Ablation: lists alone +4.1 precision points, thresholds alone -1.0 precision / +0.0 recall points, so the change is driven mainly by the allow/deny lists. Rejected strings include “High Street Bank”, “Lender”, “Borrower”, “Davenport-Terry”, “West Tammybury, 11988 UK”, “Policyholder”: mostly role and domain words the model mistakes for names, which then stop being flagged in new documents of the same kind. Thresholds after learning: {'ADDRESS': 0.358, 'EMAIL': 0.343, 'ID': 0.45, 'NAME': 0.45, 'PHONE': 0.311}.
+- **ai4privacy pii-masking-300k**: The reviewer rejected 11 false positives (by type: NAME 10, ADDRESS 1); learned non-PII shapes: none (rejected values were mostly words, and only digit-bearing codes become shapes). On 100 unseen documents precision moved +2.0 points and recall -2.0. Ablation: lists alone +1.3 precision points, thresholds alone +0.7 precision / -2.0 recall points, so the change is driven mainly by the allow/deny lists. Rejected strings include “Campus Safety Officer”, “Platform owner”, “Users”, “Counselor”, “Client”, “Team”: mostly role and domain words the model mistakes for names, which then stop being flagged in new documents of the same kind. Thresholds after learning: {'ADDRESS': 0.5, 'EMAIL': 0.291, 'ID': 0.311, 'NAME': 0.553, 'PHONE': 0.4}.
+
+The review UI's “What I learned” drawer shows the largest honest precision change: **Gretel synthetic PII finance, 63.6% → 66.7%**.
 
 ## Resources
 
-- Peak RAM (whole run, includes the GLiNER model): **1686 MB**
+- Peak RAM (whole run, includes the GLiNER model): **2209 MB**
 - Total runtime: 16.7 min

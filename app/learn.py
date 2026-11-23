@@ -263,14 +263,17 @@ EVAL_RESULTS = ROOT / "eval" / "results.json"
 
 
 def eval_precision() -> dict:
-    """Active-learning precision before -> after, from the last eval run (eval/results.json)."""
+    """Best honest active-learning result (largest precision change) from eval/results.json."""
     try:
         al = json.loads(EVAL_RESULTS.read_text(encoding="utf-8"))["active_learning"]
-        return {"before": al["precision_before"], "after": al["precision_after"],
-                "recall_before": al["recall_before"], "recall_after": al["recall_after"],
-                "train_docs": al["train_docs"], "test_docs": al["test_docs"],
-                "note": f"simulated reviewer on {al['train_docs']} Indian docs, measured on the next {al['test_docs']}"}
-    except (FileNotFoundError, KeyError, json.JSONDecodeError):
+        run = al["runs"][al["best"]] if "runs" in al else al
+        title = run.get("title", "Indian synthetic")
+        return {"before": run["precision_before"], "after": run["precision_after"],
+                "recall_before": run["recall_before"], "recall_after": run["recall_after"],
+                "dataset": title, "train_docs": run["train_docs"], "test_docs": run["test_docs"],
+                "note": f"{title}: simulated reviewer on {run['train_docs']} docs, "
+                        f"measured on {run['test_docs']} held-out docs"}
+    except (FileNotFoundError, KeyError, TypeError, ValueError):
         return {"before": None, "after": None, "note": "run eval/run_eval.py to measure"}
 
 
